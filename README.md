@@ -1,0 +1,1 @@
+This app is using SDL SDL_image and SDL_ttf. Be sure to install these before attempting to compile.

@@ -84,6 +84,14 @@ public:
     Uint32 GetFps() { return fps; }
 };
 
+enum KeyState : Uint8
+{
+    KEY_NONE = 0,
+    KEY_PRESSED = 1,
+    KEY_HELD = 2,
+    KEY_RELEASED = 3,
+};
+
 namespace Engine
 {
     struct RenderText 
@@ -175,6 +183,8 @@ namespace Engine
         int mouseX = 0, mouseY = 0;
         int mouseButton = -1;
 
+        std::unordered_map<Sint32, KeyState> keyMap;
+
     public:
         static InputManager* instance;
 
@@ -188,14 +198,47 @@ namespace Engine
             SDL_Event event;
             while (SDL_PollEvent(&event))
             {
-                if (event.type == SDL_QUIT) return false;
+                switch (event.type) 
+                {
+                    case SDL_QUIT:
+                        return false;
 
-                // FIXME: Get inputs here
+                    case SDL_KEYDOWN:
+
+                        if (keyMap[event.key.keysym.sym] == KEY_PRESSED)
+                            keyMap[event.key.keysym.sym] = KEY_HELD;
+                        else keyMap[event.key.keysym.sym] = KEY_PRESSED;
+
+                        break;
+                    case SDL_KEYUP:
+
+                        keyMap[event.key.keysym.sym] = KEY_RELEASED;
+
+                        break;
+                }
+
+                // FIXME: Add a released end state
             }
 
             mouseButton = SDL_GetMouseState(&mouseX, &mouseY);
 
             return true;
+        }
+
+        bool GetKey(SDL_Keycode keycode)
+        {
+            return keyMap[keycode] != KEY_NONE;
+        }
+
+        bool GetKeyPressed(SDL_Keycode keycode)
+        {
+            if (keyMap.find(keycode) == keyMap.end())
+            {
+                keyMap[keycode] = KEY_NONE;
+                return false;
+            }
+
+            return keyMap[keycode] == KEY_PRESSED;
         }
 
         bool GetMouseButton(int b) { return mouseButton == b; }
@@ -215,6 +258,7 @@ namespace Engine
 
         std::vector<SDL_Texture*> textures;
         std::vector<SDL_Rect> rects;
+        std::vector<SDL_Rect> spriteRects;
 
         std::vector<RenderText> strings;
 
@@ -222,7 +266,7 @@ namespace Engine
         int WINDOW_WIDTH = 0, WINDOW_HEIGHT = 0;
 
         // Fonts
-        std::string defaultFont = "Alkhemikal.ttf";
+        std::string defaultFont = "Fonts/Alkhemikal.ttf";
 
     public:
         EngineRenderer() = default;
@@ -359,9 +403,15 @@ namespace Engine
             return Color(r, g, b, 0xFF);
         }
 
-        SDL_Texture* LoadTexture(const char* path) 
+        SDL_Texture* LoadTexture(const char* path, IntVec2* spriteDimensions = nullptr) 
         {
             SDL_Surface* surface = IMG_Load(path);
+
+            if (spriteDimensions != nullptr)
+            {
+                spriteDimensions->x = surface->w;
+                spriteDimensions->y = surface->h;
+            }
 
             SDL_Texture* texture = SDL_CreateTextureFromSurface(m_renderer, surface);
             SDL_FreeSurface(surface);
@@ -369,10 +419,11 @@ namespace Engine
             return texture;
         }
 
-        void QueueTexture(SDL_Texture* texture, SDL_Rect rect)
+        void QueueTexture(SDL_Texture* texture, SDL_Rect rect, SDL_Rect spriteRect)
         {
             textures.push_back(texture);
             rects.push_back(rect);
+            spriteRects.push_back(spriteRect);
         }
 
         void QueueString(std::string text, int size, int x, int y, int r, int g, int b) 
@@ -431,13 +482,14 @@ namespace Engine
             int i = 0;
             for (auto texture : textures)
             {
-                SDL_RenderCopy(m_renderer, texture, NULL, &rects.at(i)); // Move the texture to the renderer
+                SDL_RenderCopy(m_renderer, texture, &spriteRects.at(i), &rects.at(i)); // Move the texture to the renderer
 
                 i++;
             }
 
             textures.clear();
             rects.clear();
+            spriteRects.clear();
         }
 
         SDL_Renderer& GetRenderer() { return *m_renderer; }
@@ -448,6 +500,7 @@ namespace Engine
     private:
         SDL_Texture* texture = NULL;
         SDL_Rect rect{};
+        SDL_Rect spriteSegment{};
 
         EngineRenderer* renderer = NULL;
 
@@ -456,16 +509,19 @@ namespace Engine
 
         void FormatTexture()
         {
-            Uint32* format = new Uint32(SDL_PIXELFORMAT_RGBA32);
-            SDL_QueryTexture(texture, format, NULL, &rect.w, &rect.h);
+            Uint32* pFormat = new Uint32(SDL_PIXELFORMAT_RGBA32);
+            SDL_QueryTexture(texture, pFormat, NULL, &rect.w, &rect.h);
 
-            delete format;
+            delete pFormat;
         }
 
         void LoadTexture(const char* path)
         {
-            std::cout << "Loading texture... " << path << std::endl;
-            texture = renderer->LoadTexture(path);
+            //std::cout << "Loading texture... " << path << std::endl;
+            IntVec2 sprDimensions{ 0,0 };
+            texture = renderer->LoadTexture(path, &sprDimensions);
+            spriteSegment.w = sprDimensions.x;
+            spriteSegment.h = sprDimensions.y;
 
             FormatTexture();
         }
@@ -476,7 +532,35 @@ namespace Engine
             {
                 CriticalError("ERROR: Cannot render a NULL texture.");
             }
-            else renderer->QueueTexture(texture, rect); 
+            else renderer->QueueTexture(texture, rect, spriteSegment); 
+        }
+
+        void SetDimensions(int w, int h)
+        {
+            spriteSegment.w = w;
+            spriteSegment.h = h;
+            rect.w = w;
+            rect.h = h;
+        }
+
+        void SetSpriteIndex(int i)
+        {
+            spriteSegment.x = spriteSegment.w * i;
+        }
+
+        int GetSpriteIndex()
+        {
+            return (spriteSegment.x / spriteSegment.w);
+        }
+
+        IntVec2 GetDimensions() 
+        {
+            return { spriteSegment.w, spriteSegment.h };
+        }
+
+        bool Overlaps(int x, int y) 
+        {
+            return (y >= rect.y && y <= rect.y + rect.h) && (x >= rect.x && x <= rect.x + rect.w);
         }
 
         void SetScale(int scale)
@@ -489,6 +573,17 @@ namespace Engine
         {
             rect.x = x;
             rect.y = y;
+        }
+
+        void SetPosition(IntVec2 pos)
+        {
+            rect.x = pos.x;
+            rect.y = pos.y;
+        }
+
+        IntVec2 GetPosition()
+        {
+            return { rect.x, rect.y };
         }
 
     public:

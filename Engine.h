@@ -44,8 +44,8 @@ enum MOUSE_BUTTON : Uint32
 {
     NONE = 0,
     MB_LEFT = 1,
-    MB_RIGHT = 2,
-    MB_MIDDLE = 3
+    MB_RIGHT = 4,
+    MB_MIDDLE = 2
 };
 
 struct Clock
@@ -407,6 +407,12 @@ namespace Engine
         {
             SDL_Surface* surface = IMG_Load(path);
 
+            if (surface == nullptr) 
+            {
+                std::cout << "Unable to load image: " << path << std::endl;
+                return nullptr;
+            }
+
             if (spriteDimensions != nullptr)
             {
                 spriteDimensions->x = surface->w;
@@ -543,6 +549,11 @@ namespace Engine
             rect.h = h;
         }
 
+        IntVec2 GetDimensions()
+        {
+            return { spriteSegment.w, spriteSegment.h };
+        }
+
         void SetSpriteIndex(int i)
         {
             spriteSegment.x = spriteSegment.w * i;
@@ -553,20 +564,26 @@ namespace Engine
             return (spriteSegment.x / spriteSegment.w);
         }
 
-        IntVec2 GetDimensions() 
-        {
-            return { spriteSegment.w, spriteSegment.h };
-        }
-
         bool Overlaps(int x, int y) 
         {
             return (y >= rect.y && y <= rect.y + rect.h) && (x >= rect.x && x <= rect.x + rect.w);
         }
 
-        void SetScale(int scale)
+        void SetScale(int w, int h)
         {
-            rect.w = scale;
-            rect.h = scale;
+            rect.w = w;
+            rect.h = h;
+        }
+
+        void SetScale(float v)
+        {
+            rect.w = spriteSegment.w * v;
+            rect.h = spriteSegment.h * v;
+        }
+
+        IntVec2 GetScale()
+        {
+            return { rect.w, rect.h };
         }
 
         void SetPosition(int x, int y)

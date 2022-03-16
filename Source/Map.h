@@ -57,6 +57,8 @@ public:
 		{
 			if (sprites[i].Overlaps(x, y)) return i;
 		}
+
+		return -1;
 	}
 
 	IntVec2 GetTilePosition(int id) 

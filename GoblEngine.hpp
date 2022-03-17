@@ -181,7 +181,7 @@ namespace gobl
     {
     private:
         int mouseX = 0, mouseY = 0;
-        int mouseButton = -1;
+        Uint8 mouseButton = -1;
         int prevButton = -1;
 
         Uint64 eatInput = 0;
@@ -318,7 +318,6 @@ namespace gobl
         ~GoblRenderer() { Close(); }
 
     public:
-
         bool Init() 
         {
             InitializationData settings;
@@ -522,7 +521,7 @@ namespace gobl
         SDL_Renderer* GetRenderer() { return sdlRenderer; }
     };
 
-    class SpriteRenderer
+    class Sprite
     {
     private:
         SDL_Texture* texture = nullptr;
@@ -614,13 +613,14 @@ namespace gobl
             if (path != "") LoadTexture(path);
         }
 
-        SpriteRenderer() = default;
-        SpriteRenderer(GoblRenderer * _renderer, const char* path = "") : renderer(_renderer)
+        Sprite() = default;
+        Sprite(const Sprite&) = delete;
+        Sprite(GoblRenderer * _renderer, const char* path = "") : renderer(_renderer)
         {
             if (path != "") LoadTexture(path);
         }
 
-        ~SpriteRenderer()
+        ~Sprite()
         {
             if (texture != NULL) SDL_DestroyTexture(texture);
         }
@@ -637,6 +637,8 @@ namespace gobl
     private:
         std::string appTitle;
         GoblRenderer renderer{};
+        Sprite* splash = nullptr;
+        float splashTime = 3.0f;
 
     public:
         Clock time;
@@ -649,9 +651,35 @@ namespace gobl
             renderer.SetWinTitle(appTitle.c_str());
             renderer.Init();
 
+            splash = new Sprite(&renderer, "Sprites/goblEngineLogo_Egg.png");
+            splash->SetPosition(300, 200);
+            splash->SetScale(3.0f);
+
+            bool appRunning = true;
+
+            while (appRunning)
+            {
+                // Draw the current frame content
+                Draw(renderer);
+                renderer.Present();
+
+                time.Tick();
+
+                // Allow the user to close the window and that's it
+                inputManager.SetEatInput(1);
+                if (InputManager::instance->PollEvents() == false) 
+                {
+                    appRunning = false;
+                    break;
+                }
+                if (Splash() == false) break;
+            }
+
+            delete splash;
+
             Start();
 
-            while (1)
+            while (appRunning)
             {
                 // Draw the current frame content
                 Draw(renderer);
@@ -670,13 +698,19 @@ namespace gobl
             TTF_Quit();
         }
 
-        SpriteRenderer* CreateSpriteObject(const char* path) { return new SpriteRenderer(&renderer, path); }
-        void CreateSpriteObject(SpriteRenderer& sprite, const char* path) { sprite.Create(&renderer, path); }
+        Sprite* CreateSpriteObject(const char* path) { return new Sprite(&renderer, path); }
+        void CreateSpriteObject(Sprite& sprite, const char* path) { sprite.Create(&renderer, path); }
 
         InputManager& Input() { return *InputManager::instance; }
 
     protected:
         virtual void Init() { SetTitle("demo"); }
+        virtual bool Splash() 
+        {
+            splash->Draw();
+            splashTime -= time.deltaTime;
+            return splashTime > 0.0f;
+        }
         virtual bool Start() { return true; }
         virtual bool Update() { return true; }
         virtual void Draw(GoblRenderer& renderer) {}

@@ -7,20 +7,19 @@
 
 enum Scene : Uint8
 {
-	Splash = 0,
-	MainMenu = 1,
-	Game = 2,
-	Paused = 3,
+	MainMenu = 0,
+	Game = 1,
+	Paused = 2,
 };
 
 class GoblinsMain : public gobl::GoblEngine
 {
 public:
-	gobl::SpriteRenderer title;
-	gobl::SpriteRenderer button;
+	gobl::Sprite title;
+	gobl::Sprite button;
 
-	gobl::SpriteRenderer sprite;
-	gobl::SpriteRenderer highlightSprite;
+	gobl::Sprite sprite;
+	gobl::Sprite highlightSprite;
 
 	Map map;
 

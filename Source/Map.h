@@ -14,7 +14,7 @@ private:
 	Uint16 width = 0, height = 0;
 	Uint32 mapLength = 0;
 
-	gobl::SpriteRenderer* envTex;
+	gobl::Sprite* envTex;
 
 	std::map<int, std::string> envObjects{};
 
@@ -144,6 +144,7 @@ private: // XML stuff
 			envTex = ge->CreateSpriteObject(texturePath.c_str());
 			envTex->LoadTexture(texturePath.c_str());
 			envTex->SetDimensions(sprSize.x, sprSize.y);
+
 		}
 		else
 		{
@@ -192,6 +193,7 @@ public: // Main map stuff
 	bool Overlaps(int id, int x, int y)
 	{
 		auto scale = envTex->GetScale();
+		//auto scale = _envTex.GetScale();
 
 		int tileX = scale.x * (id % width);
 		int tileY = scale.y * (id / width);

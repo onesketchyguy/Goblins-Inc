@@ -2,7 +2,7 @@
 #ifndef GOBLINS_MAIN
 #define GOBLINS_MAIN
 
-#include "../Engine.h"
+#include "../GoblEngine.hpp"
 #include "Map.h"
 
 enum Scene : Uint8

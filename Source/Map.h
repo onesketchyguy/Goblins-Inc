@@ -2,7 +2,7 @@
 #ifndef MAP_H
 #define MAP_H
 
-#include "../Engine.h"
+#include "../GoblEngine.hpp"
 #include "../libs/tinyxml2.h"
 using namespace tinyxml2;
 

@@ -1,0 +1,20 @@
+<EnvironmentSprite name="Environment.png" w="32" h="32"></EnvironmentSprite>
+
+<EnvironmentObject name="Grass">
+	<sprite i="0"></sprite>
+	<buildable></buildable>
+</EnvironmentObject>
+<EnvironmentObject name="Concrete">
+	<sprite i="1"></sprite>
+	<buildable></buildable>
+	<placable></placable>
+</EnvironmentObject>
+<EnvironmentObject name="Tile">
+	<sprite i="2"></sprite>
+	<buildable></buildable>
+	<placable></placable>
+</EnvironmentObject>
+<EnvironmentObject name="Wall">
+	<sprite i="3"></sprite>
+	<placable></placable>
+</EnvironmentObject>

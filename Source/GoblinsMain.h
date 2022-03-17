@@ -5,24 +5,35 @@
 #include "../Engine.h"
 #include "Map.h"
 
-class GoblinsMain : public Engine::GameEngine
+enum Scene : Uint8
+{
+	Splash = 0,
+	MainMenu = 1,
+	Game = 2,
+	Paused = 3,
+};
+
+class GoblinsMain : public gobl::GoblEngine
 {
 public:
-	Engine::SpriteRenderer title;
-	Engine::SpriteRenderer button;
+	gobl::SpriteRenderer title;
+	gobl::SpriteRenderer button;
 
-	Engine::SpriteRenderer sprite;
-	Engine::SpriteRenderer highlightSprite;
+	gobl::SpriteRenderer sprite;
+	gobl::SpriteRenderer highlightSprite;
 
 	Map map;
 
 	bool debugging = false;
 
-	// FIXME: Provide a scene system
-	bool mainMenu = true;
+	// FIXME: Provide a proper scene system
+	Scene currScene = Scene::MainMenu;
 
 	bool quittingApp = false;
 	bool quitToMenu = false;
+
+	int texturesLoaded = 0;
+	const int texturesToLoad = 5;
 
 	void DrawButton(std::string buttonText, IntVec2 pos, bool& clicked)
 	{
@@ -52,24 +63,22 @@ public:
 		DrawButton("Cancel", { 500, 400 }, no);
 	}
 
+	int startX, startY;
+	bool highlighting = false;
+
 private:
 	void Init() override { SetTitle("Goblins inc."); }
 
 	bool Start() override
 	{
-		map = Map(24, 24, this, "Sprites/Enviroment.png");
+		map = Map(this, 24, 24, "Mods/Environment.xml");
 
-		highlightSprite = CreateSpriteObject();
-		highlightSprite.LoadTexture("Sprites/highlightTile.png");
+		CreateSpriteObject(highlightSprite, "Sprites/highlightTile.png");
+		CreateSpriteObject(sprite, "Sprites/worker.png");
+		CreateSpriteObject(title, "Sprites/Title_HighRes.png");
+		title.SetScale(0.9f);
 
-		sprite = CreateSpriteObject();
-		sprite.LoadTexture("Sprites/worker.png");
-
-		title = CreateSpriteObject();
-		title.LoadTexture("Sprites/Title_HighRes.png");
-		title.SetScale(0.9);
-
-		button = CreateSpriteObject();
+		CreateSpriteObject(button, "Sprites/slider.png");
 		button.LoadTexture("Sprites/slider.png");
 		button.SetDimensions(18, 12);
 		button.SetSpriteIndex(1);
@@ -81,6 +90,8 @@ private:
 
 	bool Update() override
 	{
+		map.Draw();
+
 		if (quittingApp)
 		{
 			bool cancelButton = false;
@@ -93,7 +104,6 @@ private:
 			return true;
 		}
 
-
 		if (quitToMenu)
 		{
 			bool cancelButton = false;
@@ -103,7 +113,8 @@ private:
 			if (cancelButton) quitToMenu = false;
 			if (quitButton)
 			{
-				mainMenu = true;
+				// FIXME: Unload non-menu content
+				currScene = Scene::MainMenu;
 				quitToMenu = false;
 			}
 
@@ -111,7 +122,7 @@ private:
 			return true;
 		}
 
-		if (mainMenu) 
+		if (currScene == Scene::MainMenu)
 		{
 			title.Draw();
 
@@ -123,16 +134,15 @@ private:
 
 			if (startButton) 
 			{
-				// FIXME: use scenes
-				mainMenu = false;
+				// FIXME: Unload menu content
+				currScene = Scene::Game;
+				Input().SetEatInput(10); // Eat 10 frames of input
 			}
 
 			if (quitButton) quittingApp = true;
 
 			return true;
 		}
-
-		map.Draw();
 
 		sprite.Draw();
 
@@ -141,25 +151,64 @@ private:
 
 		if (tileId != -1)
 		{
-			highlightSprite.SetPosition(map.GetTilePosition(tileId));
-			highlightSprite.Draw();
-		}
+			if (debugging) DrawString(std::to_string(map.GetTileLayer(tileId)), 20, pos.x + 40, pos.y - 20);
 
-		if (Input().GetMouseButton(MOUSE_BUTTON::MB_LEFT)) 
-		{
-			if (tileId != -1) 
+			if (highlighting) 
 			{
-				map.ChangeTile(tileId, 1);
+				int lenX = Input().GetMouse().x - startX;
+				int lenY = Input().GetMouse().y - startY;
+
+				for (int y = 0; y < abs(lenY); y++)
+				{
+					for (int x = 0; x < abs(lenX); x++)
+					{
+						int dirX = lenX > 0 ? x : -x;
+						int dirY = lenY > 0 ? y : -y;
+
+						int id = map.GetTile(pos.x - dirX, pos.y - dirY);
+						highlightSprite.SetPosition(map.GetTilePosition(id));
+						highlightSprite.Draw();
+					}
+				}
+			}
+			else 
+			{
+				highlightSprite.SetPosition(map.GetTilePosition(tileId));
+				highlightSprite.Draw();
+			}
+
+			if (Input().GetMouseButtonDown(MOUSE_BUTTON::MB_LEFT))
+			{
+				startX = Input().GetMouse().x;
+				startY = Input().GetMouse().y;
+
+				highlighting = true;
+			}
+
+			if (Input().GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT))
+			{
+				int lenX = Input().GetMouse().x - startX;
+				int lenY = Input().GetMouse().y - startY;
+
+				for (int y = 0; y < abs(lenY); y++)
+				{
+					for (int x = 0; x < abs(lenX); x++)
+					{
+						int dirX = lenX > 0 ? x : -x;
+						int dirY = lenY > 0 ? y : -y;
+
+						int id = map.GetTile(pos.x - dirX, pos.y - dirY);
+						map.ChangeTile(id, 1);
+					}
+				}
+
+				highlighting = false;
 			}
 		}
 
-		if (Input().GetKeyPressed(SDLK_ESCAPE))
-		{
-			// FIXME: use scenes
-			quitToMenu = true;
-		}
+		if (Input().GetKeyPressed(SDLK_ESCAPE)) quitToMenu = true; // FIXME: Pause instead of just quitting
 
-		if (Input().GetKeyPressed(SDLK_F2)) 
+		if (Input().GetKeyPressed(SDLK_F3)) 
 		{
 			debugging = !debugging;
 		}
@@ -175,9 +224,10 @@ private:
 		return true;
 	}
 
-	void Draw(Engine::EngineRenderer& renderer) override 
+	void Draw(gobl::GoblRenderer& renderer) override 
 	{
 		//renderer.SetPixel(Input().GetMouse().x, Input().GetMouse().y, 255, 255, 255);
+		renderer.ClearScreen();
 	}
 };
 

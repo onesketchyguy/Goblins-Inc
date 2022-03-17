@@ -142,7 +142,6 @@ private: // XML stuff
 			// Only create one new sprite for the entire map texture
 			// Create the sprite object
 			envTex = ge->CreateSpriteObject(texturePath.c_str());
-			envTex->LoadTexture(texturePath.c_str());
 			envTex->SetDimensions(sprSize.x, sprSize.y);
 
 		}

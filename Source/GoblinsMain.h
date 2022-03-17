@@ -78,7 +78,6 @@ private:
 		title.SetScale(0.9f);
 
 		CreateSpriteObject(button, "Sprites/slider.png");
-		button.LoadTexture("Sprites/slider.png");
 		button.SetDimensions(18, 12);
 		button.SetSpriteIndex(1);
 

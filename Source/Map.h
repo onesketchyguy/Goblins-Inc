@@ -4,7 +4,6 @@
 
 #include "../GoblEngine.hpp"
 #include "../libs/tinyxml2.h"
-using namespace tinyxml2;
 
 bool MAP_DEBUG_VERBOSE = false;
 
@@ -28,7 +27,7 @@ private: // XML stuff
 		std::vector<int> indexs{};
 		IntVec2 sprSize{ 0,0 };
 
-		XMLDocument doc;
+		tinyxml2::XMLDocument doc;
 		doc.LoadFile(path);
 
 		auto current = doc.FirstChildElement();

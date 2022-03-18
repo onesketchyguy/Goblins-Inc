@@ -206,7 +206,7 @@ namespace gobl
     private:
         int mouseX = 0, mouseY = 0;
         Uint8 mouseButton = -1;
-        int prevButton = -1;
+        Uint8 prevButton = -1;
 
         Uint64 eatInput = 0;
 

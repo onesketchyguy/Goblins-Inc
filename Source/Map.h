@@ -152,6 +152,10 @@ private: // XML stuff
 
 public: // Main map stuff
 	Map() = default;
+	/*~Map() 
+	{
+		if (envTex != nullptr) delete envTex;
+	}*/
 	Map(gobl::GoblEngine* ge, int w, int h, const char* path)
 	{
 		width = w;
@@ -199,7 +203,15 @@ public: // Main map stuff
 		return (y >= tileY && y <= tileY + scale.y) && (x >= tileX && x <= tileX + scale.y);
 	}
 
-	int GetTile(int x, int y) 
+	int GetTile(int x, int y)
+	{
+		if (x > width || x < 0) return -1;
+		if (y > height || y < 0) return -1;
+
+		return y * width + x;
+	}
+
+	int GetTileFromWorldPos(int x, int y) 
 	{
 		if (x > width * envTex->GetScale().x || x < 0) return -1;
 		if (y > height * envTex->GetScale().y || y < 0) return -1;
@@ -211,6 +223,20 @@ public: // Main map stuff
 		y /= envTex->GetScale().y;
 
 		return y * width + x;
+	}
+
+	IntVec2 GetTilePos(int x, int y)
+	{
+		if (x > width * envTex->GetScale().x || x < 0) return IntVec2{ -1, -1 };
+		if (y > height * envTex->GetScale().y || y < 0) return IntVec2{ -1, -1 };
+
+		x -= x % envTex->GetScale().x;
+		y -= y % envTex->GetScale().y;
+
+		x /= envTex->GetScale().x;
+		y /= envTex->GetScale().y;
+
+		return IntVec2{ x, y };
 	}
 
 	IntVec2 GetTilePosition(int id) 

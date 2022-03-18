@@ -62,6 +62,7 @@ public:
 		DrawButton("Cancel", { 500, 400 }, no);
 	}
 
+	IntVec2 startCell;
 	int startX, startY;
 	bool highlighting = false;
 
@@ -145,64 +146,51 @@ private:
 		sprite.Draw();
 
 		auto pos = Input().GetMouse();
-		int tileId = map.GetTile(pos.x, pos.y);
 
-		if (tileId != -1)
+		if (highlighting)
 		{
-			if (debugging) DrawString(std::to_string(map.GetTileLayer(tileId)), 20, pos.x + 40, pos.y - 20);
+			IntVec2 finalCell = map.GetTilePos(Input().GetMouse().x, Input().GetMouse().y);
 
-			if (highlighting) 
+			int lenX = finalCell.x - startCell.x;
+			int lenY = finalCell.y - startCell.y;
+
+			if (Input().GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT)) highlighting = false;
+
+			for (int y = 0; y < abs(lenY) + 1; y++)
 			{
-				int lenX = Input().GetMouse().x - startX;
-				int lenY = Input().GetMouse().y - startY;
+				short dirY = lenY > 0 ? y : -y;
 
-				for (int y = 0; y < abs(lenY); y++)
+				for (int x = 0; x < abs(lenX) + 1; x++)
 				{
-					for (int x = 0; x < abs(lenX); x++)
-					{
-						int dirX = lenX > 0 ? x : -x;
-						int dirY = lenY > 0 ? y : -y;
+					short dirX = lenX > 0 ? x : -x;
 
-						int id = map.GetTile(pos.x - dirX, pos.y - dirY);
+					int id = map.GetTile(finalCell.x - dirX, finalCell.y - dirY);
+
+					if (highlighting == true) 
+					{
 						highlightSprite.SetPosition(map.GetTilePosition(id));
 						highlightSprite.Draw();
 					}
+					else map.ChangeTile(id, 1);
 				}
 			}
-			else 
+		}
+		else
+		{
+			startCell = map.GetTilePos(Input().GetMouse().x, Input().GetMouse().y);
+			int tileId = map.GetTile(startCell.x, startCell.y);
+
+			if (tileId != -1)
 			{
+				if (debugging) DrawString(std::to_string(map.GetTileLayer(tileId)), 20, pos.x + 40, pos.y - 20);
+
+				if (Input().GetMouseButtonDown(MOUSE_BUTTON::MB_LEFT)) highlighting = true;
+
 				highlightSprite.SetPosition(map.GetTilePosition(tileId));
 				highlightSprite.Draw();
 			}
-
-			if (Input().GetMouseButtonDown(MOUSE_BUTTON::MB_LEFT))
-			{
-				startX = Input().GetMouse().x;
-				startY = Input().GetMouse().y;
-
-				highlighting = true;
-			}
-
-			if (Input().GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT))
-			{
-				int lenX = Input().GetMouse().x - startX;
-				int lenY = Input().GetMouse().y - startY;
-
-				for (int y = 0; y < abs(lenY); y++)
-				{
-					for (int x = 0; x < abs(lenX); x++)
-					{
-						int dirX = lenX > 0 ? x : -x;
-						int dirY = lenY > 0 ? y : -y;
-
-						int id = map.GetTile(pos.x - dirX, pos.y - dirY);
-						map.ChangeTile(id, 1);
-					}
-				}
-
-				highlighting = false;
-			}
 		}
+
 
 		if (Input().GetKeyPressed(SDLK_ESCAPE)) quitToMenu = true; // FIXME: Pause instead of just quitting
 

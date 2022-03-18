@@ -118,11 +118,13 @@ namespace gobl
 {
     struct RenderText 
     {
-        std::string text;
-        int size, x, y;
-        Uint8 r, g, b;
+        std::string text = "";
+        int size = 0, x = 0, y = 0;
+        Uint8 r = 0, g = 0, b = 0;
+        Uint16 outline = 0;
 
-        RenderText(std::string _t, int _s, int _x, int _y, Uint8 _r, Uint8 _g, Uint8 _b)
+        RenderText() = default;
+        RenderText(std::string _t, int _x, int _y, int _s, Uint8 _r, Uint8 _g, Uint8 _b)
         {
             text = _t;
             size = _s;
@@ -131,6 +133,18 @@ namespace gobl
             r = _r;
             g = _g;
             b = _b;
+        }
+
+        RenderText(std::string _t, int _x, int _y, int _s, Uint8 _r, Uint8 _g, Uint8 _b, Uint16 _o)
+        {
+            text = _t;
+            size = _s;
+            x = _x;
+            y = _y;
+            r = _r;
+            g = _g;
+            b = _b;
+            outline = _o;
         }
     };
 
@@ -486,10 +500,8 @@ namespace gobl
             spriteRects.push_back(spriteRect);
         }
 
-        void QueueString(std::string text, int size, int x, int y, Uint8 r, Uint8 g, Uint8 b)
-        {
-            strings.push_back({ text, size, x, y, r, g, b });
-        }
+        void QueueString(std::string text, int size, int x, int y, Uint8 r, Uint8 g, Uint8 b) { strings.push_back({ text, size, x, y, r, g, b }); }
+        void QueueString(RenderText t) { strings.push_back(t); }
 
     private:
         void DrawStrings()
@@ -512,11 +524,27 @@ namespace gobl
                     return;
                 }
 
-                SDL_Texture* text_texture;
-
-                text_texture = SDL_CreateTextureFromSurface(sdlRenderer, textSurface);
-
+                SDL_Texture* text_texture = SDL_CreateTextureFromSurface(sdlRenderer, textSurface);
                 SDL_Rect dest = { str.x, str.y, textSurface->w, textSurface->h };
+
+                if (str.outline > 0) 
+                {
+                    SDL_SetTextureColorMod(text_texture, 0, 0, 0);
+
+                    dest.x -= str.outline / 2;
+                    dest.y -= str.outline / 2;
+
+                    for (Uint16 i = 0; i < str.outline; i++)
+                    {
+                        dest.x += i;
+                        dest.y += i;
+
+                        SDL_RenderCopy(sdlRenderer, text_texture, NULL, &dest);
+                    }
+
+                    dest = { str.x, str.y, textSurface->w, textSurface->h };
+                    SDL_SetTextureColorMod(text_texture, str.r, str.g, str.b);
+                }
 
                 SDL_RenderCopy(sdlRenderer, text_texture, NULL, &dest);
 
@@ -581,6 +609,9 @@ namespace gobl
             rect.h = h;
         }
 
+        void SetAlpha(Uint8 alpha) { SDL_SetTextureAlphaMod(texture, alpha); }
+        void SetColorMod(Color c) { SDL_SetTextureColorMod(texture, c.r, c.g, c.b); }
+
         void SetDimensions(IntVec2 d) { SetDimensions(d.x, d.y); }
         IntVec2 GetDimensions() { return { sprRect.w, sprRect.h }; }
 
@@ -588,6 +619,7 @@ namespace gobl
         int GetSpriteIndex() { return (sprRect.x / sprRect.w); }
 
         bool Overlaps(int x, int y) { return (y >= rect.y && y <= rect.y + rect.h) && (x >= rect.x && x <= rect.x + rect.w); }
+        bool Overlaps(IntVec2 pos) { return Overlaps(pos.x, pos.y); }
 
         void SetScale(int w, int h)
         {
@@ -599,6 +631,12 @@ namespace gobl
         {
             rect.w = static_cast<int>(sprRect.w * v);
             rect.h = static_cast<int>(sprRect.h * v);
+        }
+
+        void ModScale(int w, int h)
+        {
+            rect.w += static_cast<int>(w);
+            rect.h += static_cast<int>(h);
         }
 
         IntVec2 GetScale() { return { rect.w, rect.h }; }
@@ -658,6 +696,9 @@ namespace gobl
     private:
         GoblRenderer renderer{};
         Sprite* splash = nullptr;
+
+        Sprite* ngnLogo = nullptr;
+
         float splashTime = 3.0f;
         const float FRAME_TIME = 0.1f;
         float frameTime = FRAME_TIME;
@@ -673,6 +714,7 @@ namespace gobl
             renderer.Init();
             renderer.ClearScreen();
 
+            ngnLogo = new Sprite(&renderer, "Sprites/goblEngineLogo_Egg.png");
             splash = new Sprite(&renderer, "Sprites/gobleLogoAnim.png");
             splash->SetPosition(300, 200);
             splash->SetDimensions(64, 64);
@@ -701,22 +743,27 @@ namespace gobl
 
             delete splash;
 
-            Start();
-
             while (appRunning)
             {
-                renderer.ClearPresentation();
-                renderer.PresentBackground();
+                if (Start() == false) break;
 
-                // Get input for the next frame
-                if (InputManager::instance->PollEvents() == false) break;
-                if (Update() == false) break;
+                while (appRunning)
+                {
+                    renderer.ClearPresentation();
+                    renderer.PresentBackground();
 
-                // Draw the current frame content
-                Draw(renderer);
-                renderer.Present();
+                    // Get input for the next frame
+                    if (InputManager::instance->PollEvents() == false) break;
+                    if (Update() == false) break;
 
-                time.Tick();
+                    // Draw the current frame content
+                    Draw(renderer);
+                    renderer.Present();
+
+                    time.Tick();
+                }
+
+                if (Exit() == true) break;
             }
 
             renderer.Close();
@@ -727,6 +774,8 @@ namespace gobl
 
         Sprite* CreateSpriteObject(const char* path) { return new Sprite(&renderer, path); }
         void CreateSpriteObject(Sprite& sprite, const char* path) { sprite.Create(&renderer, path); }
+
+        Sprite* GetEngineLogo() { return ngnLogo; }
 
         InputManager& Input() { return *InputManager::instance; }
 
@@ -756,14 +805,22 @@ namespace gobl
         virtual bool Start() { return true; }
         virtual bool Update() { return true; }
         virtual void Draw(GoblRenderer& renderer) {}
+        virtual bool Exit() { return true; } // Return true to complete exit
 
     protected:
         void SetTitle(const char* title) { renderer.SetWinTitle(title); }
 
     public: // Draw functions
-        GoblEngine& DrawString(std::string text, int size = 20, int x = 0, int y = 0, Uint8 r = 0xFF, Uint8 g = 0xFF, Uint8 b = 0xFF)
+        GoblEngine& DrawString(std::string text, int x = 0, int y = 0, int size = 20, Uint8 r = 0xFF, Uint8 g = 0xFF, Uint8 b = 0xFF)
         {
-            renderer.QueueString(text, size, x, y, r, g, b);
+            renderer.QueueString({ text, x, y, size, r, g, b });
+
+            return *this;
+        }
+
+        GoblEngine& DrawOutlinedString(std::string text, int x = 0, int y = 0, int size = 20, Uint16 outlineSize = 1, Uint8 r = 0xFF, Uint8 g = 0xFF, Uint8 b = 0xFF)
+        {
+            renderer.QueueString({ text, x, y, size, r, g, b, outlineSize });
 
             return *this;
         }

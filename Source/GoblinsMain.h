@@ -17,6 +17,7 @@ class GoblinsMain : public gobl::GoblEngine
 public:
 	gobl::Sprite title;
 	gobl::Sprite button;
+	gobl::Sprite* mapTiles;
 
 	gobl::Sprite sprite;
 	gobl::Sprite highlightSprite;
@@ -33,13 +34,14 @@ public:
 
 	int texturesLoaded = 0;
 	const int texturesToLoad = 5;
+	Uint32 tileTypeIndex = 0;
 
 	void DrawButton(std::string buttonText, IntVec2 pos, bool& clicked)
 	{
 		button.SetPosition(pos);
 		button.Draw();
 
-		Color c = { 100,100,100 };
+		Color c = { 100, 100, 100 };
 		if (button.Overlaps(Input().GetMouse().x, Input().GetMouse().y))
 		{
 			c.r = c.g = c.b = 0;
@@ -50,16 +52,56 @@ public:
 			}
 		}
 
-		DrawString(buttonText, 50, button.GetPosition().x + (button.GetScale().x / 2) - 12 * buttonText.size(),
-			button.GetPosition().y + (button.GetScale().y / 2) - 20, c.r, c.g, c.b);
+		DrawString(buttonText, button.GetPosition().x + (button.GetScale().x / 2) - 12 * buttonText.size(),
+			button.GetPosition().y + (button.GetScale().y / 2) - 20, 50, c.r, c.g, c.b);
 	}
 
 	void DrawValidate(std::string prompt, bool& yes, bool& no) 
 	{
-		DrawString(prompt, 50, 300, 300, 0xFF, 0xFF, 0xFF);
+		DrawOutlinedString(prompt, 300, 300, 50, 2);
 
-		DrawButton("Confirm", {300, 400}, yes);
+		DrawButton("Confirm", { 200, 400 }, yes);
 		DrawButton("Cancel", { 500, 400 }, no);
+	}
+
+	void DrawTileOptions() 
+	{
+		auto mapTexture = map.GetTexture();
+
+		for (Uint32 i = 0; i < map.GetTileTypeCount(); i++)
+		{
+			mapTexture->SetSpriteIndex(i);
+			mapTexture->SetPosition(800, 100 + (50 * i));
+			mapTexture->SetScale(1.5f);
+
+			if (mapTexture->Overlaps(Input().GetMouse())) 
+			{
+				mapTexture->SetScale(1.6f);
+
+				if (Input().GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT)) tileTypeIndex = i;
+
+				DrawString(map.GetLayerInfo(i), 850, 100 + (50 * i), 20);
+			}
+
+			mapTexture->Draw();
+		}
+
+		if (tileTypeIndex != -1) 
+		{
+			mapTexture->SetSpriteIndex(tileTypeIndex);
+			mapTexture->SetPosition(790, 25);
+			mapTexture->SetScale(2.0f);
+
+			if (mapTexture->Overlaps(Input().GetMouse()))
+			{
+				mapTexture->SetScale(2.05f);
+
+				if (Input().GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT)) tileTypeIndex = -1;
+			}
+
+			DrawString(map.GetLayerInfo(tileTypeIndex), 20, 800, 5);
+			mapTexture->Draw();
+		}
 	}
 
 	IntVec2 startCell;
@@ -78,18 +120,19 @@ private:
 		CreateSpriteObject(title, "Sprites/Title_HighRes.png");
 		title.SetScale(0.9f);
 
-		CreateSpriteObject(button, "Sprites/slider.png");
-		button.SetDimensions(18, 12);
-		button.SetSpriteIndex(1);
+		GetEngineLogo()->SetPosition(933, 637);
 
-		button.SetScale(10);
+		CreateSpriteObject(button, "Sprites/slider.png");
+		button.SetDimensions(20, 12);
+		button.SetScale(8.0f);
+		button.ModScale(static_cast<int>(0.2f * button.GetScale().x), 0);
 
 		return true;
 	}
 
 	bool Update() override
 	{
-		map.Draw();
+		auto mousePos = Input().GetMouse();
 
 		if (quittingApp)
 		{
@@ -105,6 +148,8 @@ private:
 
 		if (quitToMenu)
 		{
+			map.Draw();
+
 			bool cancelButton = false;
 			bool quitButton = false;
 			DrawValidate("Quit to menu?", quitButton, cancelButton);
@@ -123,7 +168,12 @@ private:
 
 		if (currScene == Scene::MainMenu)
 		{
+			map.Draw();
+
 			title.Draw();
+			GetEngineLogo()->SetAlpha(50);
+			GetEngineLogo()->Draw();
+			auto pos = GetEngineLogo()->GetPosition();
 
 			bool startButton = false;
 			bool quitButton = false;
@@ -143,51 +193,57 @@ private:
 			return true;
 		}
 
+		DrawTileOptions();
+		map.Draw();
 		sprite.Draw();
 
-		auto pos = Input().GetMouse();
-
-		if (highlighting)
+		if (tileTypeIndex != -1) 
 		{
-			IntVec2 finalCell = map.GetTilePos(Input().GetMouse().x, Input().GetMouse().y);
-
-			int lenX = finalCell.x - startCell.x;
-			int lenY = finalCell.y - startCell.y;
-
-			if (Input().GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT)) highlighting = false;
-
-			for (int y = 0; y < abs(lenY) + 1; y++)
+			if (highlighting)
 			{
-				short dirY = lenY > 0 ? y : -y;
+				IntVec2 finalCell = map.GetTilePos(Input().GetMouse().x, Input().GetMouse().y);
+				if (Input().GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT)) highlighting = false;
 
-				for (int x = 0; x < abs(lenX) + 1; x++)
+				if (finalCell.x != -1 && finalCell.y != -1)
 				{
-					short dirX = lenX > 0 ? x : -x;
+					short lenX = finalCell.x - startCell.x;
+					short lenY = finalCell.y - startCell.y;
 
-					int id = map.GetTile(finalCell.x - dirX, finalCell.y - dirY);
-
-					if (highlighting == true) 
+					for (int y = 0; y < abs(lenY) + 1; y++)
 					{
-						highlightSprite.SetPosition(map.GetTilePosition(id));
-						highlightSprite.Draw();
+						short dirY = lenY > 0 ? y : -y;
+
+						for (int x = 0; x < abs(lenX) + 1; x++)
+						{
+							short dirX = lenX > 0 ? x : -x;
+
+							int id = map.GetTile(finalCell.x - dirX, finalCell.y - dirY);
+
+							if (highlighting == true)
+							{
+								highlightSprite.SetPosition(map.GetTilePosition(id));
+								highlightSprite.Draw();
+							}
+							else map.ChangeTile(id, tileTypeIndex);
+						}
 					}
-					else map.ChangeTile(id, 1);
 				}
+
 			}
-		}
-		else
-		{
-			startCell = map.GetTilePos(Input().GetMouse().x, Input().GetMouse().y);
-			int tileId = map.GetTile(startCell.x, startCell.y);
-
-			if (tileId != -1)
+			else
 			{
-				if (debugging) DrawString(std::to_string(map.GetTileLayer(tileId)), 20, pos.x + 40, pos.y - 20);
+				startCell = map.GetTilePos(Input().GetMouse().x, Input().GetMouse().y);
+				int tileId = map.GetTile(startCell.x, startCell.y);
 
-				if (Input().GetMouseButtonDown(MOUSE_BUTTON::MB_LEFT)) highlighting = true;
+				if (tileId != -1)
+				{
+					if (debugging) DrawString(std::to_string(map.GetTileLayer(tileId)), 20, mousePos.x + 40, mousePos.y - 20);
 
-				highlightSprite.SetPosition(map.GetTilePosition(tileId));
-				highlightSprite.Draw();
+					if (Input().GetMouseButtonDown(MOUSE_BUTTON::MB_LEFT)) highlighting = true;
+
+					highlightSprite.SetPosition(map.GetTilePosition(tileId));
+					highlightSprite.Draw();
+				}
 			}
 		}
 
@@ -201,10 +257,10 @@ private:
 
 		if (debugging)
 		{
-			DrawString(std::to_string(time.deltaTime), 20, Input().GetMouse().x - 20, 
-				Input().GetMouse().y + 20, 0xFF, 0xFF, 0xFF);
-			DrawString(std::to_string(time.GetFps()), 20, Input().GetMouse().x - 20, 
-				Input().GetMouse().y - 20, 0xFF, 0xFF, 0xFF);
+			DrawString(std::to_string(time.deltaTime), Input().GetMouse().x - 20, 
+				Input().GetMouse().y + 20, 20, 0xFF, 0xFF, 0xFF);
+			DrawString(std::to_string(time.GetFps()), Input().GetMouse().x - 20, 
+				Input().GetMouse().y - 20, 20, 0xFF, 0xFF, 0xFF);
 		}
 
 		return true;
@@ -214,6 +270,13 @@ private:
 	{
 		//renderer.SetPixel(Input().GetMouse().x, Input().GetMouse().y, 255, 255, 255);
 		renderer.ClearScreen();
+	}
+
+	bool Exit() override
+	{
+		map.Destroy();
+
+		return true;
 	}
 };
 

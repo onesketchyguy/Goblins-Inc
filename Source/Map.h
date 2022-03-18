@@ -13,7 +13,8 @@ private:
 	Uint16 width = 0, height = 0;
 	Uint32 mapLength = 0;
 
-	gobl::Sprite* envTex;
+	gobl::Sprite* envTex = nullptr;
+	IntVec2 sprSize{ 0,0 };
 
 	std::map<int, std::string> envObjects{};
 
@@ -25,7 +26,6 @@ private: // XML stuff
 	{
 		std::string texturePath = "Sprites/";
 		std::vector<int> indexs{};
-		IntVec2 sprSize{ 0,0 };
 
 		tinyxml2::XMLDocument doc;
 		doc.LoadFile(path);
@@ -152,10 +152,11 @@ private: // XML stuff
 
 public: // Main map stuff
 	Map() = default;
-	/*~Map() 
+	void Destroy() 
 	{
 		if (envTex != nullptr) delete envTex;
-	}*/
+	}
+
 	Map(gobl::GoblEngine* ge, int w, int h, const char* path)
 	{
 		width = w;
@@ -171,6 +172,8 @@ public: // Main map stuff
 
 	void Draw() 
 	{
+		envTex->SetDimensions(sprSize.x, sprSize.y);
+
 		for (Uint32 i = 0; i < mapLength; i++)
 		{
 			int x = i % width;
@@ -182,15 +185,12 @@ public: // Main map stuff
 		}
 	}
 
-	void ChangeTile(int id, int index)
-	{
-		mapLayers[id] = index;
-	}
-	
-	int GetTileLayer(int id)
-	{
-		return mapLayers[id];
-	}
+	Uint32 GetTileTypeCount() { return envObjects.size(); }
+
+	std::string GetLayerInfo(int layerId) { return envObjects[layerId]; }
+
+	void ChangeTile(int id, Uint32 index) { mapLayers[id] = index; }
+	int GetTileLayer(int id) { return mapLayers[id]; }
 
 	bool Overlaps(int id, int x, int y)
 	{
@@ -224,6 +224,8 @@ public: // Main map stuff
 
 		return y * width + x;
 	}
+
+	gobl::Sprite* GetTexture() { return envTex; }
 
 	IntVec2 GetTilePos(int x, int y)
 	{

@@ -21,6 +21,7 @@ struct IntVec2
         x = _x;
         y = _y;
     }
+    IntVec2() = default;
 };
 
 struct Color 
@@ -212,11 +213,7 @@ namespace gobl
 
     public:
         static InputManager* instance;
-
-        InputManager()
-        {
-            instance = this;
-        }
+        InputManager() { instance = this; }
 
         bool PollEvents()
         {
@@ -261,10 +258,7 @@ namespace gobl
             return true;
         }
 
-        bool GetKey(SDL_Keycode keycode)
-        {
-            return keyMap[keycode] != KEY_NONE;
-        }
+        bool GetKey(SDL_Keycode keycode) { return keyMap[keycode] != KEY_NONE; }
 
         bool GetKeyPressed(SDL_Keycode keycode)
         {
@@ -413,16 +407,24 @@ namespace gobl
             if (m_window != NULL) SDL_SetWindowTitle(m_window, title);
         }
 
-        void Present()
+        void ClearPresentation() 
         {
-            if (shouldUpdateTexture) 
+            SDL_RenderClear(sdlRenderer); // Clear the renderer
+        }
+
+        void PresentBackground()
+        {
+            if (shouldUpdateTexture)
             {
                 SDL_UpdateTexture(bgTex, NULL, m_buffer, WINDOW_WIDTH * sizeof(Uint32)); // Clear the texture
                 shouldUpdateTexture = false;
             }
 
-            SDL_RenderClear(sdlRenderer); // Clear the renderer
             SDL_RenderCopy(sdlRenderer, bgTex, NULL, NULL); // Move the texture to the renderer
+        }
+
+        void Present()
+        {
             RenderSurfaces();
             DrawStrings();
             SDL_RenderPresent(sdlRenderer); // Show the renderer
@@ -446,24 +448,17 @@ namespace gobl
 
         SDL_Texture* LoadTexture(const char* path, SDL_Rect& rect, SDL_Rect& sprRect)
         {
-            // Allocate memory for a surface
-            SDL_Surface* surface = (SDL_Surface*)malloc(sizeof(SDL_Surface));
-            // Load image
-            surface = IMG_Load(path);
+            // Load image in a surface
+            SDL_Surface* surface = IMG_Load(path);
 
             if (surface == nullptr) 
             {
                 std::cout << "Unable to load image: " << path << std::endl;
-                SDL_FreeSurface(surface); // NOTE: I don't know that this FreeSurface is needed. Testing required.
-
                 return nullptr;
             }
 
-            // Allocate memory for the textyre
-            SDL_Texture* texture = (SDL_Texture*)malloc(sizeof(surface));
-
             // Create the texture
-            texture = SDL_CreateTextureFromSurface(sdlRenderer, surface);
+            SDL_Texture* texture = SDL_CreateTextureFromSurface(sdlRenderer, surface);
             SDL_FreeSurface(surface);
 
             // Rect initialization
@@ -475,6 +470,13 @@ namespace gobl
             sprRect.h = rect.h;
 
             return texture;
+        }
+
+        void DrawTexture(SDL_Texture* texture, SDL_Rect& rect, SDL_Rect& spriteRect)
+        {
+            // Move the texture to the renderer
+            if (SDL_RenderCopy(sdlRenderer, texture, &spriteRect, &rect) < 0)
+                std::cout << "ERROR: " << SDL_GetError() << std::endl;
         }
 
         void QueueTexture(SDL_Texture* texture, SDL_Rect& rect, SDL_Rect& spriteRect)
@@ -507,7 +509,6 @@ namespace gobl
                 if (!textSurface)
                 {
                     std::cout << "Failed to render text: " << TTF_GetError() << std::endl;
-                    // Maybe free surface here? I don't know
                     return;
                 }
 
@@ -534,9 +535,7 @@ namespace gobl
             {
                 // Move the texture to the renderer
                 if (SDL_RenderCopy(sdlRenderer, textures.at(i), &spriteRects.at(i), &rects.at(i)) < 0) 
-                {
                     std::cout << "ERROR: " << SDL_GetError() << std::endl;
-                }
             }
 
             textures.clear();
@@ -564,11 +563,14 @@ namespace gobl
 
         void Draw()
         {
-            if (GetTextureExists() == false) 
-            {
-                CriticalError("ERROR: Cannot render a NULL texture.");
-            }
+            if (GetTextureExists() == false) CriticalError("ERROR: Cannot render a NULL texture.");
             else renderer->QueueTexture(texture, rect, sprRect);
+        }
+
+        void DrawImmediate()
+        {
+            if (GetTextureExists() == false) CriticalError("ERROR: Cannot render a NULL texture.");
+            else renderer->DrawTexture(texture, rect, sprRect);
         }
 
         void SetDimensions(int w, int h)
@@ -680,9 +682,10 @@ namespace gobl
 
             while (appRunning)
             {
+                renderer.ClearPresentation();
+
                 // Draw the current frame content
                 Draw(renderer);
-                renderer.Present();
 
                 time.Tick();
 
@@ -692,6 +695,8 @@ namespace gobl
 
                 if (Splash() == false) break;
                 splashTime -= static_cast<float>(time.deltaTime);
+
+                renderer.Present();
             }
 
             delete splash;
@@ -700,6 +705,9 @@ namespace gobl
 
             while (appRunning)
             {
+                renderer.ClearPresentation();
+                renderer.PresentBackground();
+
                 // Get input for the next frame
                 if (InputManager::instance->PollEvents() == false) break;
                 if (Update() == false) break;

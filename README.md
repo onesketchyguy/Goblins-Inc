@@ -1,1 +1,1 @@
-This app is using SDL SDL_image and SDL_ttf. Be sure to install these before attempting to compile.
+This app is using SDL2 SDL2main SDL2_image SDL2_ttf imagehlp dinput8 dxguid dxerr8 user32 gdi32 winmm imm32 ole32 oleaut32 shell32 version setupapi uuid rpcrt4. Be sure to install these before attempting to compile.

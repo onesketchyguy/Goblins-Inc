@@ -121,9 +121,10 @@ namespace gobl
     struct RenderText 
     {
         std::string text;
-        int size, x, y, r, g, b;
+        int size, x, y;
+        Uint8 r, g, b;
 
-        RenderText(std::string _t, int _s, int _x, int _y, int _r, int _g, int _b) 
+        RenderText(std::string _t, int _s, int _x, int _y, Uint8 _r, Uint8 _g, Uint8 _b)
         {
             text = _t;
             size = _s;
@@ -310,7 +311,7 @@ namespace gobl
 
         // Functional stuff
         void SetEatInput(int amnt) { eatInput = amnt; }
-        int GetEatInput() { return eatInput; }
+        Uint64 GetEatInput() { return eatInput; }
     };
 
     InputManager* InputManager::instance = nullptr;
@@ -376,8 +377,7 @@ namespace gobl
             WINDOW_HEIGHT = settings.windowHeight;
 
             // Init image library
-            Uint32 flags = IMG_INIT_JPG | IMG_INIT_PNG;
-            if (IMG_Init(flags) < 0)
+            if (IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG) < 0)
             {
                 std::cout << "Error initializing SDL_Image: " << IMG_GetError() << std::endl;
                 return CriticalError("Unable to inititialize images!");
@@ -698,7 +698,7 @@ namespace gobl
                 if (InputManager::instance->PollEvents() == false) appRunning = false;
 
                 if (Splash() == false) break;
-                splashTime -= time.deltaTime;
+                splashTime -= static_cast<float>(time.deltaTime);
             }
 
             delete splash;
@@ -747,7 +747,7 @@ namespace gobl
                         frameTime = FRAME_TIME;
                     }
                 }
-                else frameTime -= time.deltaTime;
+                else frameTime -= static_cast<float>(time.deltaTime);
             }
 
             return splashTime > 0.0f;

@@ -40,6 +40,30 @@ struct Color
     }
 };
 
+Uint32 ColorFromRGB(Uint8 r, Uint8 g, Uint8 b, Uint8 a = 0xFF)
+{
+    Uint32 color = 0;
+
+    color += r;
+    color <<= 8;
+    color += g;
+    color <<= 8;
+    color += b;
+    color <<= 8;
+    color += a;
+
+    return color;
+}
+
+Color GetColorFromInt(const Uint32& col)
+{
+    int r = (col & 0xFF0000) >> 16;
+    int g = (col & 0x00FF00) >> 8;
+    int b = (col & 0x0000FF);
+
+    return Color(r, g, b, 0xFF);
+}
+
 enum MOUSE_BUTTON : Uint32
 {
     NONE = 0,
@@ -297,7 +321,7 @@ namespace gobl
 
         SDL_Window* m_window = NULL;
         SDL_Renderer* sdlRenderer = NULL;
-        SDL_Texture* m_texture = NULL;
+        SDL_Texture* bgTex = NULL;
         Uint32* m_buffer = nullptr;
         bool shouldUpdateTexture = true;
 
@@ -331,17 +355,17 @@ namespace gobl
             }
 
             m_window = SDL_CreateWindow(windowTitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                settings.windowWidth, settings.windowHeight, SDL_WINDOW_SHOWN);
+                settings.windowWidth, settings.windowHeight, SDL_WINDOW_VULKAN);
 
             if (m_window == NULL) return CriticalError("Window initialization failed!");
 
-            Uint32 render_flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE;
+            Uint32 render_flags = SDL_RENDERER_ACCELERATED;
             sdlRenderer = SDL_CreateRenderer(m_window, -1, render_flags);
             if (sdlRenderer == NULL) return CriticalError("Coult not create SDL_Renderer!");
 
-            m_texture = SDL_CreateTexture(sdlRenderer, SDL_PIXELFORMAT_RGBA8888,
+            bgTex = SDL_CreateTexture(sdlRenderer, SDL_PIXELFORMAT_RGBA8888,
                 SDL_TEXTUREACCESS_STATIC, settings.windowWidth, settings.windowHeight);
-            if (m_texture == NULL) return CriticalError("Coult not create SDL_Texture!");
+            if (bgTex == NULL) return CriticalError("Coult not create SDL_Texture!");
 
             m_buffer = new Uint32[settings.windowWidth * settings.windowHeight];
             if (m_buffer == NULL) return CriticalError("Unable to allocate memory to create buffer!");
@@ -353,7 +377,11 @@ namespace gobl
 
             // Init image library
             Uint32 flags = IMG_INIT_JPG | IMG_INIT_PNG;
-            IMG_Init(flags);
+            if (IMG_Init(flags) < 0)
+            {
+                std::cout << "Error initializing SDL_Image: " << IMG_GetError() << std::endl;
+                return CriticalError("Unable to inititialize images!");
+            }
 
             // Init fonts
             if (TTF_Init() < 0) 
@@ -368,29 +396,36 @@ namespace gobl
         void Close()
         {
             if (sdlRenderer != NULL) SDL_DestroyRenderer(sdlRenderer);
-            if (m_texture != NULL) SDL_DestroyTexture(m_texture);
-            if (m_window != NULL) SDL_DestroyWindow(m_window);
-            if (m_buffer != nullptr) 
+            if (bgTex != NULL) 
             {
-                delete[] m_buffer;
-                m_buffer = nullptr;
+                SDL_DestroyTexture(bgTex);
+
+                if (m_buffer != nullptr)
+                {
+                    delete[] m_buffer;
+                    m_buffer = nullptr;
+                }
             }
+            if (m_window != NULL) SDL_DestroyWindow(m_window);
         }
 
     public:
-        // MUST BE CALLED BEFORE INITIALIZATION
-        void SetWinTitle(const char* title) { windowTitle = title; }
+        void SetWinTitle(const char* title) 
+        {
+            windowTitle = title;
+            if (m_window != NULL) SDL_SetWindowTitle(m_window, title);
+        }
 
         void Present()
         {
             if (shouldUpdateTexture) 
             {
-                SDL_UpdateTexture(m_texture, NULL, m_buffer, WINDOW_WIDTH * sizeof(Uint32)); // Clear the texture
+                SDL_UpdateTexture(bgTex, NULL, m_buffer, WINDOW_WIDTH * sizeof(Uint32)); // Clear the texture
                 shouldUpdateTexture = false;
             }
 
             SDL_RenderClear(sdlRenderer); // Clear the renderer
-            SDL_RenderCopy(sdlRenderer, m_texture, NULL, NULL); // Move the texture to the renderer
+            SDL_RenderCopy(sdlRenderer, bgTex, NULL, NULL); // Move the texture to the renderer
             RenderSurfaces();
             DrawStrings();
             SDL_RenderPresent(sdlRenderer); // Show the renderer
@@ -412,41 +447,35 @@ namespace gobl
             shouldUpdateTexture = true;
         }
 
-        Uint32 ColorFromRGB(Uint8 r, Uint8 g, Uint8 b, Uint8 a = 0xFF)
+        SDL_Texture* LoadTexture(const char* path, SDL_Rect& rect, SDL_Rect& sprRect)
         {
-            Uint32 color = 0;
-
-            color += r;
-            color <<= 8;
-            color += g;
-            color <<= 8;
-            color += b;
-            color <<= 8;
-            color += a;
-
-            return color;
-        }
-
-        Color GetColorFromInt(const Uint32& col) {
-            int r = (col & 0xFF0000) >> 16;
-            int g = (col & 0x00FF00) >> 8;
-            int b = (col & 0x0000FF);
-
-            return Color(r, g, b, 0xFF);
-        }
-
-        SDL_Texture* LoadTexture(const char* path) 
-        {
-            SDL_Surface* surface = IMG_Load(path);
+            // Allocate memory for a surface
+            SDL_Surface* surface = (SDL_Surface*)malloc(sizeof(SDL_Surface));
+            // Load image
+            surface = IMG_Load(path);
 
             if (surface == nullptr) 
             {
                 std::cout << "Unable to load image: " << path << std::endl;
+                SDL_FreeSurface(surface); // NOTE: I don't know that this FreeSurface is needed. Testing required.
+
                 return nullptr;
             }
 
-            SDL_Texture* texture = SDL_CreateTextureFromSurface(sdlRenderer, surface);
+            // Allocate memory for the textyre
+            SDL_Texture* texture = (SDL_Texture*)malloc(sizeof(surface));
+
+            // Create the texture
+            texture = SDL_CreateTextureFromSurface(sdlRenderer, surface);
             SDL_FreeSurface(surface);
+
+            // Rect initialization
+            rect.x = rect.y = sprRect.y = sprRect.x = 0;
+
+            // Set the dimensions and hook the rect
+            SDL_QueryTexture(texture, NULL, NULL, &rect.w, &rect.h);
+            sprRect.w = rect.w;
+            sprRect.h = rect.h;
 
             return texture;
         }
@@ -463,19 +492,17 @@ namespace gobl
             strings.push_back({ text, size, x, y, r, g, b });
         }
 
-        const int GetWindowWidth() { return WINDOW_WIDTH; }
-        const int GetWindowHeight() { return WINDOW_HEIGHT; }
-
     private:
         void DrawStrings()
         {
             for (auto str : strings) 
             {
                 TTF_Font* font = TTF_OpenFont(defaultFont.c_str(), str.size);
+
                 if (!font)
                 {
                     std::cout << "Failed to load font: " << TTF_GetError() << std::endl;
-                    return;
+                    continue;
                 }
 
                 SDL_Color col = { str.r, str.g, str.b, 0xFF };
@@ -506,10 +533,13 @@ namespace gobl
 
         void RenderSurfaces()
         {
-            for (Uint32 i = 0; i < textures.size(); i++)
+            for (size_t i = 0; i < textures.size(); i++)
             {
                 // Move the texture to the renderer
-                SDL_RenderCopy(sdlRenderer, textures.at(i), &spriteRects.at(i), &rects.at(i));
+                if (SDL_RenderCopy(sdlRenderer, textures.at(i), &spriteRects.at(i), &rects.at(i)) < 0) 
+                {
+                    std::cout << "ERROR: " << SDL_GetError() << std::endl;
+                }
             }
 
             textures.clear();
@@ -519,6 +549,8 @@ namespace gobl
 
     public: // Public accessors
         SDL_Renderer* GetRenderer() { return sdlRenderer; }
+        const int GetWindowWidth() { return WINDOW_WIDTH; }
+        const int GetWindowHeight() { return WINDOW_HEIGHT; }
     };
 
     class Sprite
@@ -598,13 +630,7 @@ namespace gobl
         void LoadTexture(const char* path)
         {
             std::cout << "Loading texture... " << path << std::endl;
-            texture = renderer->LoadTexture(path);
-
-            rect.x = rect.y = sprRect.y = sprRect.x = 0;
-
-            SDL_QueryTexture(texture, NULL, NULL, &rect.w, &rect.h);
-            sprRect.w = rect.w;
-            sprRect.h = rect.h;
+            texture = renderer->LoadTexture(path, rect, sprRect);
         }
 
         void Create(GoblRenderer* _renderer, const char* path)
@@ -639,6 +665,8 @@ namespace gobl
         GoblRenderer renderer{};
         Sprite* splash = nullptr;
         float splashTime = 3.0f;
+        const float FRAME_TIME = 0.1f;
+        float frameTime = FRAME_TIME;
 
     public:
         Clock time;
@@ -650,10 +678,12 @@ namespace gobl
 
             renderer.SetWinTitle(appTitle.c_str());
             renderer.Init();
+            renderer.ClearScreen();
 
-            splash = new Sprite(&renderer, "Sprites/goblEngineLogo_Egg.png");
+            splash = new Sprite(&renderer, "Sprites/gobleLogoAnim.png");
             splash->SetPosition(300, 200);
-            splash->SetScale(3.0f);
+            splash->SetDimensions(64, 64);
+            splash->SetScale(6.0f);
 
             bool appRunning = true;
 
@@ -667,12 +697,10 @@ namespace gobl
 
                 // Allow the user to close the window and that's it
                 inputManager.SetEatInput(1);
-                if (InputManager::instance->PollEvents() == false) 
-                {
-                    appRunning = false;
-                    break;
-                }
+                if (InputManager::instance->PollEvents() == false) appRunning = false;
+
                 if (Splash() == false) break;
+                splashTime -= time.deltaTime;
             }
 
             delete splash;
@@ -681,15 +709,15 @@ namespace gobl
 
             while (appRunning)
             {
+                // Get input for the next frame
+                if (InputManager::instance->PollEvents() == false) break;
+                if (Update() == false) break;
+
                 // Draw the current frame content
                 Draw(renderer);
                 renderer.Present();
 
                 time.Tick();
-
-                // Get input for the next frame
-                if (InputManager::instance->PollEvents() == false) break;
-                if (Update() == false) break;
             }
 
             renderer.Close();
@@ -708,7 +736,22 @@ namespace gobl
         virtual bool Splash() 
         {
             splash->Draw();
-            splashTime -= time.deltaTime;
+
+            if (splashTime <= 1.0f) 
+            {
+                if (frameTime <= 0.0f) 
+                {
+                    int sprIndex = splash->GetSpriteIndex();
+
+                    if (sprIndex < 3)
+                    {
+                        splash->SetSpriteIndex(sprIndex + 1);
+                        frameTime = FRAME_TIME;
+                    }
+                }
+                else frameTime -= time.deltaTime;
+            }
+
             return splashTime > 0.0f;
         }
         virtual bool Start() { return true; }

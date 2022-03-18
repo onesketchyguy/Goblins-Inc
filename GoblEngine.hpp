@@ -661,7 +661,6 @@ namespace gobl
     class GoblEngine
     {
     private:
-        std::string appTitle;
         GoblRenderer renderer{};
         Sprite* splash = nullptr;
         float splashTime = 3.0f;
@@ -676,7 +675,6 @@ namespace gobl
             InputManager inputManager{};
             Init();
 
-            renderer.SetWinTitle(appTitle.c_str());
             renderer.Init();
             renderer.ClearScreen();
 
@@ -759,11 +757,7 @@ namespace gobl
         virtual void Draw(GoblRenderer& renderer) {}
 
     protected:
-        // Must be called during initialization
-        void SetTitle(const char* title)
-        {
-            appTitle = title;
-        }
+        void SetTitle(const char* title) { renderer.SetWinTitle(title); }
 
     public: // Draw functions
         GoblEngine& DrawString(std::string text, int size = 20, int x = 0, int y = 0, Uint8 r = 0xFF, Uint8 g = 0xFF, Uint8 b = 0xFF)

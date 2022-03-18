@@ -10,10 +10,7 @@
 #include "libs/json.hpp"
 using json = nlohmann::json;
 
-float lerp(float a, float b, float f)
-{
-    return (a * (1.0f - f)) + (b * f);
-}
+float lerp(float a, float b, float f) { return (a * (1.0f - f)) + (b * f); }
 
 struct IntVec2 
 {
@@ -610,11 +607,7 @@ namespace gobl
             rect.y = y;
         }
 
-        void SetPosition(IntVec2 pos)
-        {
-            rect.x = pos.x;
-            rect.y = pos.y;
-        }
+        void SetPosition(IntVec2 pos) { SetPosition(pos.x, pos.y); }
 
         IntVec2 GetPosition() { return { rect.x, rect.y }; }
 

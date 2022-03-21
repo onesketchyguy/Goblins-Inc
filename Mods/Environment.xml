@@ -2,19 +2,23 @@
 
 <EnvironmentObject name="Grass">
 	<sprite i="0"></sprite>
-	<buildable></buildable>
+	<buildable layer="grass"></buildable>
 </EnvironmentObject>
 <EnvironmentObject name="Concrete">
 	<sprite i="1"></sprite>
-	<buildable></buildable>
-	<placable></placable>
+	<buildable layer="foundation"></buildable>
+	<placable layer="grass" multi="true"></placable>
 </EnvironmentObject>
 <EnvironmentObject name="Tile">
 	<sprite i="2"></sprite>
-	<buildable></buildable>
-	<placable></placable>
+	<buildable layer="ground"></buildable>
+	<placable layer="foundation" multi="true"></placable>
 </EnvironmentObject>
 <EnvironmentObject name="Wall">
 	<sprite i="3"></sprite>
-	<placable></placable>
+	<placable layer="ground" multi="true"></placable>
+</EnvironmentObject>
+<EnvironmentObject name="Door">
+	<sprite i="4"></sprite>
+	<placable layer="ground"></placable>
 </EnvironmentObject>

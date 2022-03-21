@@ -29,12 +29,13 @@ public:
 	// FIXME: Provide a proper scene system
 	Scene currScene = Scene::MainMenu;
 
+	// FIXME: Provide a state machine for the users current menu
 	bool quittingApp = false;
 	bool quitToMenu = false;
 
 	int texturesLoaded = 0;
 	const int texturesToLoad = 5;
-	Uint32 tileTypeIndex = 0;
+	Uint32 tileTypeIndex = -1;
 
 	void DrawButton(std::string buttonText, IntVec2 pos, bool& clicked)
 	{
@@ -67,10 +68,12 @@ public:
 	void DrawTileOptions() 
 	{
 		auto mapTexture = map.GetTexture();
+		mapTexture->SetUseCamera(false);
 
 		for (Uint32 i = 0; i < map.GetTileTypeCount(); i++)
 		{
-			mapTexture->SetSpriteIndex(i);
+			int s = map.GetTypeSprite(i);
+			mapTexture->SetSpriteIndex(s);
 			mapTexture->SetPosition(800, 100 + (50 * i));
 			mapTexture->SetScale(1.5f);
 
@@ -80,7 +83,13 @@ public:
 
 				if (Input().GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT)) tileTypeIndex = i;
 
-				DrawString(map.GetLayerInfo(i), 850, 100 + (50 * i), 20);
+				DrawString(map.GetTypeName(i), 850, 100 + (50 * i), 20);
+
+				if (debugging) 
+				{
+					DrawString(map.GetTypeBuildable(i), 850, 115 + (50 * i));
+					DrawString(map.GetTypeLayer(i), 850, 130 + (50 * i));
+				}
 			}
 
 			mapTexture->Draw();
@@ -88,7 +97,7 @@ public:
 
 		if (tileTypeIndex != -1) 
 		{
-			mapTexture->SetSpriteIndex(tileTypeIndex);
+			mapTexture->SetSpriteIndex(map.GetTypeSprite(tileTypeIndex));
 			mapTexture->SetPosition(790, 25);
 			mapTexture->SetScale(2.0f);
 
@@ -99,9 +108,18 @@ public:
 				if (Input().GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT)) tileTypeIndex = -1;
 			}
 
-			DrawString(map.GetLayerInfo(tileTypeIndex), 20, 800, 5);
+			DrawString(map.GetTypeName(tileTypeIndex), 800, 5);
+
+			if (debugging) 
+			{
+				DrawString(map.GetTypeBuildable(tileTypeIndex), 850, 25);
+				DrawString(map.GetTypeLayer(tileTypeIndex), 850, 45);
+			}
+
 			mapTexture->Draw();
 		}
+
+		mapTexture->SetUseCamera(true);
 	}
 
 	IntVec2 startCell;
@@ -115,8 +133,9 @@ private:
 	{
 		map = Map(this, 24, 24, "Mods/Environment.xml");
 
-		CreateSpriteObject(highlightSprite, "Sprites/highlightTile.png");
-		CreateSpriteObject(sprite, "Sprites/worker.png");
+		CreateSpriteObject(highlightSprite, "Sprites/highlightTile.png", true);
+		highlightSprite.SetColorMod({ 0, 0, 0 });
+		CreateSpriteObject(sprite, "Sprites/worker.png", true);
 		CreateSpriteObject(title, "Sprites/Title_HighRes.png");
 		title.SetScale(0.9f);
 
@@ -133,6 +152,12 @@ private:
 	bool Update() override
 	{
 		auto mousePos = Input().GetMouse();
+		auto worldMouse = Vec2{ mousePos.x + GetCamera().x, mousePos.y + GetCamera().y };
+
+		//worldMouse.x += 32 * 12;
+		//worldMouse.y += 32 * 12;
+
+		map.Draw();
 
 		if (quittingApp)
 		{
@@ -193,21 +218,21 @@ private:
 			return true;
 		}
 
-		DrawTileOptions();
-		map.Draw();
 		sprite.Draw();
 
 		if (tileTypeIndex != -1) 
 		{
 			if (highlighting)
 			{
-				IntVec2 finalCell = map.GetTilePos(Input().GetMouse().x, Input().GetMouse().y);
+				IntVec2 finalCell = map.GetTileMapPos(static_cast<int>(worldMouse.x), static_cast<int>(worldMouse.y));
 				if (Input().GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT)) highlighting = false;
 
 				if (finalCell.x != -1 && finalCell.y != -1)
 				{
 					short lenX = finalCell.x - startCell.x;
 					short lenY = finalCell.y - startCell.y;
+
+					highlightSprite.SetAlpha(255);
 
 					for (int y = 0; y < abs(lenY) + 1; y++)
 					{
@@ -218,13 +243,18 @@ private:
 							short dirX = lenX > 0 ? x : -x;
 
 							int id = map.GetTile(finalCell.x - dirX, finalCell.y - dirY);
+							Uint32 tileLayer = map.GetTileLayer(id);
 
-							if (highlighting == true)
+							if (map.GetTypeBuildable(tileLayer) == map.GetTypeLayer(tileTypeIndex))
 							{
-								highlightSprite.SetPosition(map.GetTilePosition(id));
-								highlightSprite.Draw();
+								if (highlighting == true) 
+								{
+									highlightSprite.SetPosition(map.GetTilePos(id));
+									highlightSprite.Draw();
+								}
+								else map.ChangeTile(id, tileTypeIndex);
 							}
-							else map.ChangeTile(id, tileTypeIndex);
+							else highlightSprite.SetAlpha(50);
 						}
 					}
 				}
@@ -232,35 +262,52 @@ private:
 			}
 			else
 			{
-				startCell = map.GetTilePos(Input().GetMouse().x, Input().GetMouse().y);
+				startCell = map.GetTileMapPos(static_cast<int>(worldMouse.x), static_cast<int>(worldMouse.y));
 				int tileId = map.GetTile(startCell.x, startCell.y);
 
 				if (tileId != -1)
 				{
-					if (debugging) DrawString(std::to_string(map.GetTileLayer(tileId)), 20, mousePos.x + 40, mousePos.y - 20);
+					Uint32 tileLayer = map.GetTileLayer(tileId);
+
+					if (debugging)
+					{
+						DrawString(std::to_string(map.GetTileLayer(tileId)), mousePos.x + 40, mousePos.y - 20);
+						DrawString(map.GetTypeBuildable(map.GetTileLayer(tileId)), mousePos.x + 40, mousePos.y - 40);
+						DrawString(map.GetTypeLayer(map.GetTileLayer(tileId)), mousePos.x + 40, mousePos.y - 60);
+					}
 
 					if (Input().GetMouseButtonDown(MOUSE_BUTTON::MB_LEFT)) highlighting = true;
 
-					highlightSprite.SetPosition(map.GetTilePosition(tileId));
+					if (map.GetTypeBuildable(tileLayer) == map.GetTypeLayer(tileTypeIndex)) 
+						highlightSprite.SetAlpha(0xFF);
+					else highlightSprite.SetAlpha(50);
+
+					highlightSprite.SetPosition(map.GetTilePos(tileId));
 					highlightSprite.Draw();
 				}
 			}
 		}
 
-
 		if (Input().GetKeyPressed(SDLK_ESCAPE)) quitToMenu = true; // FIXME: Pause instead of just quitting
+		if (Input().GetKeyPressed(SDLK_F3)) debugging = !debugging;
 
-		if (Input().GetKeyPressed(SDLK_F3)) 
-		{
-			debugging = !debugging;
-		}
+		// Draw UI
+		DrawTileOptions();
+
+		float spd = 150.0f;
+		Vec2 camMove = {};
+		if (Input().GetKey(SDLK_RIGHT) || Input().GetKey(SDLK_d)) camMove.x += spd * time.fDeltaTime;
+		if (Input().GetKey(SDLK_LEFT) || Input().GetKey(SDLK_a)) camMove.x -= spd * time.fDeltaTime;
+		if (Input().GetKey(SDLK_UP) || Input().GetKey(SDLK_w)) camMove.y -= spd * time.fDeltaTime;
+		if (Input().GetKey(SDLK_DOWN) || Input().GetKey(SDLK_s)) camMove.y += spd * time.fDeltaTime;
+
+		MoveCamera(camMove.x, camMove.y);
+		//MoveZoom(Input().GetMouseWheel() * time.deltaTime);
 
 		if (debugging)
 		{
-			DrawString(std::to_string(time.deltaTime), Input().GetMouse().x - 20, 
-				Input().GetMouse().y + 20, 20, 0xFF, 0xFF, 0xFF);
-			DrawString(std::to_string(time.GetFps()), Input().GetMouse().x - 20, 
-				Input().GetMouse().y - 20, 20, 0xFF, 0xFF, 0xFF);
+			DrawString(std::to_string(time.deltaTime), 0, 0);
+			DrawString(std::to_string(time.GetFps()), 0, 20);
 		}
 
 		return true;

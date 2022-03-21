@@ -24,6 +24,18 @@ struct IntVec2
     IntVec2() = default;
 };
 
+struct Vec2
+{
+    float x = 0, y = 0;
+
+    Vec2(float _x, float _y)
+    {
+        x = _x;
+        y = _y;
+    }
+    Vec2() = default;
+};
+
 struct Color 
 {
     Uint8 r = 0, g = 0, b = 0, a = 0;
@@ -83,6 +95,7 @@ private:
 
 public:
     double deltaTime = 0.0;
+    float fDeltaTime = 0.0;
 
     void Tick()
     {
@@ -90,6 +103,7 @@ public:
         delta = tick_time - last_tick_time;
 
         deltaTime = delta / 1000.0;
+        fDeltaTime = static_cast<float>(deltaTime);
 
         last_tick_time = tick_time;
 
@@ -223,6 +237,9 @@ namespace gobl
 
         Uint64 eatInput = 0;
 
+        Sint32 mouseWheel = 0;
+        Sint32 prevMouseWheel = 0;
+
         std::unordered_map<Sint32, KeyState> keyMap;
 
     public:
@@ -245,6 +262,8 @@ namespace gobl
                 return true;
             }
 
+            prevMouseWheel = mouseWheel;
+
             while (SDL_PollEvent(&event))
             {
                 switch (event.type) 
@@ -263,6 +282,14 @@ namespace gobl
                         keyMap[event.key.keysym.sym] = KEY_RELEASED;
 
                         break;
+                    case SDL_MOUSEWHEEL: 
+
+                        mouseWheel = event.wheel.y;
+
+                        break;
+
+                    default:
+                        break;
                 }
             }
 
@@ -272,7 +299,7 @@ namespace gobl
             return true;
         }
 
-        bool GetKey(SDL_Keycode keycode) { return keyMap[keycode] != KEY_NONE; }
+        bool GetKey(SDL_Keycode keycode) { return keyMap[keycode] != KEY_NONE && keyMap[keycode] != KEY_RELEASED; }
 
         bool GetKeyPressed(SDL_Keycode keycode)
         {
@@ -308,9 +335,11 @@ namespace gobl
             return false;
         }
 
-        bool GetMouseButton(int b) { return mouseButton == b; }
-        bool GetMouseButtonDown(int b) { return mouseButton == b && prevButton != b; }
-        bool GetMouseButtonUp(int b) { return mouseButton != b && prevButton == b; }
+        bool GetMouseButton(Uint8 b) { return mouseButton == b; }
+        bool GetMouseButtonDown(Uint8 b) { return mouseButton == b && prevButton != b; }
+        bool GetMouseButtonUp(Uint8 b) { return mouseButton != b && prevButton == b; }
+
+        float GetMouseWheel() { return static_cast<float>(mouseWheel - prevMouseWheel); }
 
         IntVec2 GetMouse() { return { mouseX, mouseY }; }
 
@@ -321,10 +350,29 @@ namespace gobl
 
     InputManager* InputManager::instance = nullptr;
 
+    struct Camera 
+    {
+    public:
+        Vec2 pos{};
+        float zoom = 0;
+
+        SDL_Rect GetRect(SDL_Rect rect) 
+        {
+            rect.x -= static_cast<int>(pos.x);
+            rect.y -= static_cast<int>(pos.y);
+
+            rect.x *= static_cast<int>(1 + zoom);
+            rect.y *= static_cast<int>(1 + zoom);
+            rect.w *= static_cast<int>(1 + zoom);
+            rect.h *= static_cast<int>(1 + zoom);
+
+            return rect;
+        }
+    };
+
     class GoblRenderer
     {
     private:
-
         SDL_Window* m_window = NULL;
         SDL_Renderer* sdlRenderer = NULL;
         SDL_Texture* bgTex = NULL;
@@ -508,6 +556,8 @@ namespace gobl
         {
             for (auto str : strings) 
             {
+                if (str.text.length() < 1) continue;
+
                 TTF_Font* font = TTF_OpenFont(defaultFont.c_str(), str.size);
 
                 if (!font)
@@ -561,8 +611,14 @@ namespace gobl
         {
             for (size_t i = 0; i < textures.size(); i++)
             {
+                auto r = rects.at(i);
+                r.w += 1;
+                r.h += 1;
+                r.x -= 1;
+                r.y -= 1;
+
                 // Move the texture to the renderer
-                if (SDL_RenderCopy(sdlRenderer, textures.at(i), &spriteRects.at(i), &rects.at(i)) < 0) 
+                if (SDL_RenderCopy(sdlRenderer, textures.at(i), &spriteRects.at(i), &r) < 0) 
                     std::cout << "ERROR: " << SDL_GetError() << std::endl;
             }
 
@@ -585,20 +641,37 @@ namespace gobl
         SDL_Rect sprRect = { 0, 0, 0, 0 };
 
         GoblRenderer* renderer = nullptr;
+        Camera* cam = nullptr;
+
+        bool useCam = true;
+
+        SDL_Rect GetRect() 
+        {
+            if (useCam) return cam == nullptr ? rect : cam->GetRect(rect);
+            else return rect;
+        }
 
     public:
         bool GetTextureExists() { return texture != nullptr; }
 
+        Camera& GetCamera() { return *cam; }
+        void SetCamera(Camera* cam) { this->cam = cam; }
+        void SetUseCamera(bool value) { useCam = value; }
+
         void Draw()
         {
             if (GetTextureExists() == false) CriticalError("ERROR: Cannot render a NULL texture.");
-            else renderer->QueueTexture(texture, rect, sprRect);
+            else 
+            {
+                auto r = GetRect();
+                renderer->QueueTexture(&*texture, r, sprRect);
+            }
         }
 
         void DrawImmediate()
         {
             if (GetTextureExists() == false) CriticalError("ERROR: Cannot render a NULL texture.");
-            else renderer->DrawTexture(texture, rect, sprRect);
+            else renderer->DrawTexture(&*texture, rect, sprRect);
         }
 
         void SetDimensions(int w, int h)
@@ -618,7 +691,11 @@ namespace gobl
         void SetSpriteIndex(int i) { sprRect.x = sprRect.w * i; }
         int GetSpriteIndex() { return (sprRect.x / sprRect.w); }
 
-        bool Overlaps(int x, int y) { return (y >= rect.y && y <= rect.y + rect.h) && (x >= rect.x && x <= rect.x + rect.w); }
+        bool Overlaps(int x, int y) 
+        { 
+            auto r = GetRect();
+            return (y >= r.y && y <= r.y + r.h) && (x >= r.x && x <= r.x + r.w); 
+        }
         bool Overlaps(IntVec2 pos) { return Overlaps(pos.x, pos.y); }
 
         void SetScale(int w, int h)
@@ -666,23 +743,24 @@ namespace gobl
             texture = renderer->LoadTexture(path, rect, sprRect);
         }
 
-        void Create(GoblRenderer* _renderer, const char* path)
+        void Create(GoblRenderer* _renderer, const char* path, Camera* cam = nullptr)
         {
             renderer = _renderer;
             if (path != "") LoadTexture(path);
+
+            if (cam != nullptr) SetCamera(cam);
         }
 
         Sprite() = default;
         Sprite(const Sprite&) = delete;
-        Sprite(GoblRenderer * _renderer, const char* path = "") : renderer(_renderer)
+        Sprite(GoblRenderer* _renderer, const char* path = "", Camera* cam = nullptr) : renderer(_renderer)
         {
             if (path != "") LoadTexture(path);
+
+            if (cam != nullptr) SetCamera(cam);
         }
 
-        ~Sprite()
-        {
-            if (texture != NULL) SDL_DestroyTexture(texture);
-        }
+        ~Sprite() { if (texture != NULL) SDL_DestroyTexture(texture); }
     };
 
     //class Object
@@ -696,6 +774,7 @@ namespace gobl
     private:
         GoblRenderer renderer{};
         Sprite* splash = nullptr;
+        Camera cam;
 
         Sprite* ngnLogo = nullptr;
 
@@ -772,11 +851,10 @@ namespace gobl
             TTF_Quit();
         }
 
-        Sprite* CreateSpriteObject(const char* path) { return new Sprite(&renderer, path); }
-        void CreateSpriteObject(Sprite& sprite, const char* path) { sprite.Create(&renderer, path); }
+        Sprite* CreateSpriteObject(const char* path, bool useCam = false) { return new Sprite(&renderer, path, useCam ? &cam : nullptr); }
+        void CreateSpriteObject(Sprite& sprite, const char* path, bool useCam = false) { sprite.Create(&renderer, path, useCam ? &cam : nullptr); }
 
         Sprite* GetEngineLogo() { return ngnLogo; }
-
         InputManager& Input() { return *InputManager::instance; }
 
     protected:
@@ -809,6 +887,15 @@ namespace gobl
 
     protected:
         void SetTitle(const char* title) { renderer.SetWinTitle(title); }
+
+
+        Vec2 GetCamera() { return cam.pos; }
+        void MoveCamera(float mX, float mY)
+        {
+            cam.pos.x += mX;
+            cam.pos.y += mY;
+        }
+        void MoveZoom(float amnt) { cam.zoom += amnt; }
 
     public: // Draw functions
         GoblEngine& DrawString(std::string text, int x = 0, int y = 0, int size = 20, Uint8 r = 0xFF, Uint8 g = 0xFF, Uint8 b = 0xFF)

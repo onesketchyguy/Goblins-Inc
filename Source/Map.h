@@ -7,6 +7,24 @@
 
 bool MAP_DEBUG_VERBOSE = false;
 
+namespace MAP 
+{
+	struct TileData 
+	{
+		std::string name = "";
+
+		// What can be placed on this
+		std::string buildLayer = "";
+
+		// What layer this is on
+		std::string layer = "";
+
+		bool canMultiPlace = false;
+
+		int sprIndex = 0;
+	};
+}
+
 class Map 
 {
 private:
@@ -16,24 +34,89 @@ private:
 	gobl::Sprite* envTex = nullptr;
 	IntVec2 sprSize{ 0,0 };
 
-	std::map<int, std::string> envObjects{};
+	std::vector<MAP::TileData> envObjects{};
 
 	int* mapLayers;
 	Uint64 sprLength = 0;
 
 private: // XML stuff
+	void HandleAttributes(tinyxml2::XMLElement* currElement, MAP::TileData& tileData)
+	{
+		std::string element = std::string(currElement->Name());
+
+		if (MAP_DEBUG_VERBOSE) std::cout << "\t" << element << " tag: " << std::endl;
+
+		// Read attributes
+		auto curAtt = currElement->FirstAttribute();
+		if (curAtt != nullptr)
+		{
+			while (curAtt != nullptr)
+			{
+				std::string currAttValue = std::string(curAtt->Value());
+
+				if (std::string(curAtt->Name()) == "i" && element == "sprite")
+				{
+					tileData.sprIndex = std::stoi(curAtt->Value());
+
+					if (MAP_DEBUG_VERBOSE)
+						std::cout << "\t\tIndex attribute: " << tileData.sprIndex << std::endl;
+				}
+				else if (std::string(curAtt->Name()) == "layer")
+				{
+					if (element == "buildable") 
+					{
+						tileData.buildLayer = currAttValue;
+
+						if (MAP_DEBUG_VERBOSE)
+							std::cout << "\t\tLayer attribute: " << tileData.buildLayer << std::endl;
+					}
+					else if (element == "placable")
+					{
+						tileData.layer = currAttValue;
+
+						if (MAP_DEBUG_VERBOSE)
+							std::cout << "\t\tLayer attribute: " << tileData.layer << std::endl;
+					}
+					else 
+					{
+						if (MAP_DEBUG_VERBOSE)
+							std::cout << "\t\tLayer Attribute found on unknown tag: " << curAtt->Value() << std::endl;
+					}
+				}
+				else if (std::string(curAtt->Name()) == "multi" && element == "placable")
+				{
+					if (currAttValue == "true") tileData.canMultiPlace = true;
+
+					if (MAP_DEBUG_VERBOSE)
+						std::cout << "\t\tMulti-place Attribute: " << curAtt->Value() << std::endl;
+				}
+				else
+				{
+					if (MAP_DEBUG_VERBOSE)
+						std::cout << "\t\tUnknown Attribute: " << curAtt->Name() << ", " << curAtt->Value() << std::endl;
+				}
+
+				curAtt = curAtt->Next();
+			}
+		}
+		else
+		{
+			std::cout << "ERROR: No " << element << " attributes found!" << std::endl;
+		}
+	}
+
 	void LoadMapModData(gobl::GoblEngine* ge, const char* path)
 	{
 		std::string texturePath = "Sprites/";
-		std::vector<int> indexs{};
 
 		tinyxml2::XMLDocument doc;
 		doc.LoadFile(path);
 
 		auto current = doc.FirstChildElement();
-
 		if (current != nullptr)
 		{
+			int id = 0;
+
 			// Read each mod object
 			while (current != nullptr)
 			{
@@ -85,48 +168,22 @@ private: // XML stuff
 					// Handle element data
 					auto curModElement = current->FirstChildElement();
 
+					MAP::TileData tileData;
+					tileData.name = std::string(title);
+
 					// Read each element of that mod object
 					while (curModElement != nullptr)
 					{
-						if (MAP_DEBUG_VERBOSE)
-							std::cout << "\t" << curModElement->Name() << " tag: " << std::endl;
-
-						// Handle the sprite tag
-						if (std::string(curModElement->Name()) == "sprite")
-						{
-							// Read attributes
-							auto curAtt = curModElement->FirstAttribute();
-							if (curAtt != nullptr)
-							{
-								while (curAtt != nullptr)
-								{
-									if (std::string(curAtt->Name()) == "i") {
-										int sprIndex = std::stoi(curAtt->Value());
-
-										if (MAP_DEBUG_VERBOSE)
-											std::cout << "\t\tIndex attribute: " << curAtt->Name() << ", " << sprIndex << std::endl;
-										envObjects[sprIndex] = title;
-									}
-									else
-									{
-										if (MAP_DEBUG_VERBOSE)
-											std::cout << "\t\tUnknown Attribute: " << curAtt->Name() << ", " << curAtt->Value() << std::endl;
-									}
-
-									curAtt = curAtt->Next();
-								}
-							}
-							else
-							{
-								std::cout << "ERROR: No sprite attributes provided!" << std::endl;
-							}
-						}
-
-						// FIXME: Provide info for buildable tag and others
+						HandleAttributes(curModElement, tileData);
 
 						// Move to next element
 						curModElement = curModElement->NextSiblingElement();
 					}
+
+					// Provide info for buildable tag and others
+					envObjects.push_back(tileData);
+
+					id++;
 				}
 
 				// Move on to the next mod block
@@ -140,7 +197,7 @@ private: // XML stuff
 
 			// Only create one new sprite for the entire map texture
 			// Create the sprite object
-			envTex = ge->CreateSpriteObject(texturePath.c_str());
+			envTex = ge->CreateSpriteObject(texturePath.c_str(), true);
 			envTex->SetDimensions(sprSize.x, sprSize.y);
 
 		}
@@ -179,7 +236,7 @@ public: // Main map stuff
 			int x = i % width;
 			int y = i / width;
 
-			envTex->SetSpriteIndex(mapLayers[i]);
+			envTex->SetSpriteIndex(GetTypeSprite(mapLayers[i]));
 			envTex->SetPosition(envTex->GetScale().x * x, envTex->GetScale().y * y);
 			envTex->Draw();
 		}
@@ -187,15 +244,18 @@ public: // Main map stuff
 
 	Uint32 GetTileTypeCount() { return envObjects.size(); }
 
-	std::string GetLayerInfo(int layerId) { return envObjects[layerId]; }
+	std::string GetTypeName(int layerId) { return envObjects[layerId].name; }
+	std::string GetTypeLayer(int layerId) { return envObjects[layerId].layer; }
+	std::string GetTypeBuildable(int layerId) { return envObjects[layerId].buildLayer; }
+	bool GetTypeMultiPlace(int layerId) { return envObjects[layerId].canMultiPlace; }
+	Uint32 GetTypeSprite(int layerId) { return envObjects[layerId].sprIndex; }
 
 	void ChangeTile(int id, Uint32 index) { mapLayers[id] = index; }
-	int GetTileLayer(int id) { return mapLayers[id]; }
+	Uint32 GetTileLayer(int id) { return mapLayers[id]; }
 
 	bool Overlaps(int id, int x, int y)
 	{
 		auto scale = envTex->GetScale();
-		//auto scale = _envTex.GetScale();
 
 		int tileX = scale.x * (id % width);
 		int tileY = scale.y * (id / width);
@@ -227,7 +287,7 @@ public: // Main map stuff
 
 	gobl::Sprite* GetTexture() { return envTex; }
 
-	IntVec2 GetTilePos(int x, int y)
+	IntVec2 GetTileMapPos(int x, int y)
 	{
 		if (x > width * envTex->GetScale().x || x < 0) return IntVec2{ -1, -1 };
 		if (y > height * envTex->GetScale().y || y < 0) return IntVec2{ -1, -1 };
@@ -241,7 +301,7 @@ public: // Main map stuff
 		return IntVec2{ x, y };
 	}
 
-	IntVec2 GetTilePosition(int id) 
+	IntVec2 GetTilePos(int id) 
 	{
 		return { envTex->GetScale().x * (id % width), envTex->GetScale().y * (id / width) };
 	}

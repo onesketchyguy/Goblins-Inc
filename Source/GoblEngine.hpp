@@ -304,7 +304,8 @@ namespace gobl
         int WINDOW_WIDTH = 0, WINDOW_HEIGHT = 0;
 
         // Fonts
-        std::string defaultFont = "Fonts/Alkhemikal.ttf";
+        std::string defaultFontName = "Fonts/Alkhemikal.ttf";
+        TTF_Font* defaultFont;
 
     public:
         GoblRenderer() = default;

@@ -143,6 +143,13 @@ namespace gobl
             return CriticalError("Unable to inititialize fonts!");
         }
 
+        defaultFont = TTF_OpenFont(defaultFontName.c_str(), 20);
+        if (!defaultFont)
+        {
+            std::cout << "Failed to load font: " << TTF_GetError() << std::endl;
+            return CriticalError("Unable to load default fonts!");
+        }
+
         return true;
     }
 
@@ -160,6 +167,8 @@ namespace gobl
             }
         }
         if (m_window != NULL) SDL_DestroyWindow(m_window);
+
+        TTF_CloseFont(defaultFont);
     }
 
     void GoblRenderer::PresentBackground()
@@ -249,16 +258,10 @@ namespace gobl
         {
             if (str.text.length() < 1) continue;
 
-            TTF_Font* font = TTF_OpenFont(defaultFont.c_str(), str.size);
-
-            if (!font)
-            {
-                std::cout << "Failed to load font: " << TTF_GetError() << std::endl;
-                continue;
-            }
+            TTF_SetFontSize(defaultFont, str.size);
 
             SDL_Color col = { str.r, str.g, str.b, 0xFF };
-            SDL_Surface* textSurface = TTF_RenderText_Solid(font, str.text.c_str(), col);
+            SDL_Surface* textSurface = TTF_RenderText_Solid(defaultFont, str.text.c_str(), col);
             if (!textSurface)
             {
                 std::cout << "Failed to render text: " << TTF_GetError() << std::endl;
@@ -291,8 +294,6 @@ namespace gobl
 
             SDL_DestroyTexture(text_texture);
             SDL_FreeSurface(textSurface);
-
-            TTF_CloseFont(font);
         }
 
         strings.clear();

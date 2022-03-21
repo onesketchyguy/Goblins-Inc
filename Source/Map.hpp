@@ -2,7 +2,8 @@
 #ifndef MAP_H
 #define MAP_H
 
-#include "../GoblEngine.hpp"
+#include <iostream>
+#include "GoblEngine.hpp"
 #include "../libs/tinyxml2.h"
 
 bool MAP_DEBUG_VERBOSE = false;

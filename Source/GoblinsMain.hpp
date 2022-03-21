@@ -2,8 +2,8 @@
 #ifndef GOBLINS_MAIN
 #define GOBLINS_MAIN
 
-#include "../GoblEngine.hpp"
-#include "Map.h"
+#include "GoblEngine.hpp"
+#include "Map.hpp"
 
 enum Scene : Uint8
 {
@@ -153,10 +153,6 @@ private:
 	{
 		auto mousePos = Input().GetMouse();
 		auto worldMouse = Vec2{ mousePos.x + GetCamera().x, mousePos.y + GetCamera().y };
-
-		//worldMouse.x += 32 * 12;
-		//worldMouse.y += 32 * 12;
-
 		map.Draw();
 
 		if (quittingApp)
@@ -229,8 +225,14 @@ private:
 
 				if (finalCell.x != -1 && finalCell.y != -1)
 				{
-					short lenX = finalCell.x - startCell.x;
-					short lenY = finalCell.y - startCell.y;
+					short lenX = 0;
+					short lenY = 0;
+
+					if (map.GetTypeMultiPlace(tileTypeIndex) == true) 
+					{
+						lenX = finalCell.x - startCell.x;
+						lenY = finalCell.y - startCell.y;
+					}
 
 					highlightSprite.SetAlpha(255);
 

@@ -7,7 +7,7 @@
 #include <SDL_ttf.h>
 #include <iostream>
 #include <fstream>
-#include "libs/json.hpp"
+#include "../libs/json.hpp"
 using json = nlohmann::json;
 
 float lerp(float a, float b, float f) { return (a * (1.0f - f)) + (b * f); }

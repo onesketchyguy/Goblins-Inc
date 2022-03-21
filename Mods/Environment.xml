@@ -16,9 +16,10 @@
 </EnvironmentObject>
 <EnvironmentObject name="Wall">
 	<sprite i="3"></sprite>
+	<buildable layer="wall"></buildable>
 	<placable layer="ground" multi="true"></placable>
 </EnvironmentObject>
 <EnvironmentObject name="Door">
 	<sprite i="4"></sprite>
-	<placable layer="ground"></placable>
+	<placable layer="wall"></placable>
 </EnvironmentObject>

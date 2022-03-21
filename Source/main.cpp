@@ -1,6 +1,5 @@
 #include <iostream>
-//#include "Engine.h"
-#include "Source/GoblinsMain.h"
+#include "GoblinsMain.hpp"
 
 int main(int argc, char* argv[])
 {

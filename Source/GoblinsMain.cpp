@@ -51,19 +51,11 @@ void GoblinsMain::DrawTileOptions()
 	for (Uint32 i = 0; i < map.GetTileTypeCount(); i++)
 	{
 		mapTexture->SetPosition(x, y + (50 * i));
-		mapTexture->SetScale(1.4f);
+		mapTexture->SetScale(1.6f);
 
 		if (mapTexture->Overlaps(Input().GetMouse()))
 		{
 			if (Input().GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT)) tileTypeIndex = i;
-
-			DrawString(map.GetTypeName(i), x + 60, y + 10 + (50 * i));
-
-			if (debugging)
-			{
-				DrawString(map.GetTypeBuildable(i), x + 60, y + 15 + (50 * i));
-				DrawString(map.GetTypeLayer(i), x + 60, y + 30 + (50 * i));
-			}
 
 			highLighting = i;
 		}
@@ -78,12 +70,20 @@ void GoblinsMain::DrawTileOptions()
 		{
 			if (highLighting == i)
 			{
-				mapTexture->SetPosition(x + 5, y - 5 + (50 * i));
-				mapTexture->SetScale(1.5f);
+				mapTexture->SetPosition(x, y - 5 + (50 * i));
+				mapTexture->SetScale(1.6f);
+
+				DrawString(map.GetTypeName(i), x + 80, y + 10 + (50 * i));
+
+				if (debugging)
+				{
+					DrawString(map.GetTypeBuildable(i), x + 80, y + 15 + (50 * i));
+					DrawString(map.GetTypeLayer(i), x + 80, y + 30 + (50 * i));
+				}
 			}
 			else
 			{
-				mapTexture->SetPosition(x - 5, y + (50 * i));
+				mapTexture->SetPosition(x + 5, y + (50 * i));
 				mapTexture->SetScale(1.2f);
 			}
 		}
@@ -146,8 +146,27 @@ bool GoblinsMain::Start()
 
 bool GoblinsMain::Update()
 {
+	if (Input().GetKeyPressed(SDLK_F3)) debugging = !debugging;
+
 	auto mousePos = Input().GetMouse();
 	auto worldMouse = Vec2{ mousePos.x + GetCamera().x, mousePos.y + GetCamera().y };
+
+	if (debugging) 
+	{
+		DrawString("y" + std::to_string(mousePos.y), -90 + mousePos.x + 20, -90 + mousePos.y);
+		DrawString("x" + std::to_string(mousePos.x), -90 + mousePos.x, -90 + mousePos.y - 20);
+	}
+
+	if (quitToMenu || currScene == Scene::MainMenu)
+	{
+		// BLUR
+	}
+	else
+	{
+		// UNBLUR
+	}
+
+
 	map.Draw();
 
 	if (quittingApp)
@@ -164,8 +183,6 @@ bool GoblinsMain::Update()
 
 	if (quitToMenu)
 	{
-		map.Draw();
-
 		bool cancelButton = false;
 		bool quitButton = false;
 		DrawValidate("Quit to menu?", quitButton, cancelButton);
@@ -184,8 +201,6 @@ bool GoblinsMain::Update()
 
 	if (currScene == Scene::MainMenu)
 	{
-		map.Draw();
-
 		title.Draw();
 		GetEngineLogo()->SetAlpha(50);
 		GetEngineLogo()->Draw();
@@ -297,7 +312,6 @@ bool GoblinsMain::Update()
 	}
 
 	if (Input().GetKeyPressed(SDLK_ESCAPE)) quitToMenu = true; // FIXME: Pause instead of just quitting
-	if (Input().GetKeyPressed(SDLK_F3)) debugging = !debugging;
 
 	// Draw UI
 	DrawTileOptions();

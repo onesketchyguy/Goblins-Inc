@@ -222,18 +222,25 @@ namespace gobl
         return texture;
     }
 
-    void GoblRenderer::DrawTexture(SDL_Texture* texture, SDL_Rect& rect, SDL_Rect& spriteRect)
+    void GoblRenderer::DrawTexture(SDL_Texture* texture, SDL_Rect& rect, SDL_Rect& sprRect)
     {
         // Move the texture to the renderer
-        if (SDL_RenderCopy(sdlRenderer, texture, &spriteRect, &rect) < 0)
+        if (SDL_RenderCopy(sdlRenderer, texture, &sprRect, &rect) < 0)
             std::cout << "ERROR: " << SDL_GetError() << std::endl;
     }
 
-    void GoblRenderer::QueueTexture(SDL_Texture* texture, SDL_Rect& rect, SDL_Rect& spriteRect)
+    void GoblRenderer::QueueTexture(SDL_Texture* texture, SDL_Rect& rect, SDL_Rect& sprRect)
     {
-        textures.push_back(texture);
-        rects.push_back(rect);
-        spriteRects.push_back(spriteRect);
+        renderObjects.push_back({texture, rect, sprRect});
+    }
+
+    void GoblRenderer::QueueString(std::string text, int size, int x, int y, Uint8 r, Uint8 g, Uint8 b)
+    { 
+        strings.push_back({ text, size, x, y, r, g, b }); 
+    }
+    void GoblRenderer::QueueString(RenderText t) 
+    { 
+        strings.push_back(t); 
     }
 
     void GoblRenderer::DrawStrings()
@@ -293,22 +300,20 @@ namespace gobl
 
     void GoblRenderer::RenderSurfaces()
     {
-        for (size_t i = 0; i < textures.size(); i++)
+        for (size_t i = 0; i < renderObjects.size(); i++)
         {
-            auto r = rects.at(i);
+            auto r = renderObjects.at(i).rect;
             r.w += 1;
             r.h += 1;
             r.x -= 1;
             r.y -= 1;
 
             // Move the texture to the renderer
-            if (SDL_RenderCopy(sdlRenderer, textures.at(i), &spriteRects.at(i), &r) < 0)
+            if (SDL_RenderCopy(sdlRenderer, renderObjects.at(i).texture, &renderObjects.at(i).sprRect, &r) < 0)
                 std::cout << "ERROR: " << SDL_GetError() << std::endl;
         }
 
-        textures.clear();
-        rects.clear();
-        spriteRects.clear();
+        renderObjects.clear();
     }
 }
 
@@ -321,15 +326,23 @@ namespace gobl
         else
         {
             auto r = GetRect();
-            renderer->QueueTexture(&*texture, r, sprRect);
+            renderer->QueueTexture(texture, r, sprRect);
         }
     }
 
     void Sprite::DrawImmediate()
     {
         if (GetTextureExists() == false) CriticalError("ERROR: Cannot render a NULL texture.");
-        else renderer->DrawTexture(&*texture, rect, sprRect);
+        else renderer->DrawTexture(texture, rect, sprRect);
     }
+
+
+    void Sprite::SetSpriteIndex(int x, int y) 
+    {
+        sprRect.x = sprRect.w * x;
+        sprRect.y = sprRect.h * y;
+    }
+    int Sprite::GetSpriteIndex() { return (sprRect.x / sprRect.w); }
 
     void Sprite::SetDimensions(int w, int h)
     {

@@ -130,6 +130,12 @@ enum KeyState : Uint8
 
 namespace gobl
 {
+    struct RenderObject 
+    {
+        SDL_Texture* texture;
+        SDL_Rect rect, sprRect;
+    };
+
     struct RenderText 
     {
         std::string text = "";
@@ -223,7 +229,7 @@ namespace gobl
 
     inline bool CriticalError(const char* out)
     {
-        std::cout << out << std::endl;
+        std::cout << "CRITICAL ERROR: " << out << std::endl;
 
         return false;
     }
@@ -291,10 +297,7 @@ namespace gobl
         Uint32* m_buffer = nullptr;
         bool shouldUpdateTexture = true;
 
-        std::vector<SDL_Texture*> textures;
-        std::vector<SDL_Rect> rects;
-        std::vector<SDL_Rect> spriteRects;
-
+        std::vector<RenderObject> renderObjects;
         std::vector<RenderText> strings;
 
         const char* windowTitle = "undef";
@@ -319,21 +322,19 @@ namespace gobl
         }
 
         void ClearPresentation() { SDL_RenderClear(sdlRenderer); }
-
         void PresentBackground();
         void Present();
         void SetPixel(int x, int y, Uint8 r, Uint8 g, Uint8 b);
         void ClearScreen(Color c = { 0, 0, 0, 0 });
         SDL_Texture* LoadTexture(const char* path, SDL_Rect& rect, SDL_Rect& sprRect);
-        void DrawTexture(SDL_Texture* texture, SDL_Rect& rect, SDL_Rect& spriteRect);
-        void QueueTexture(SDL_Texture* texture, SDL_Rect& rect, SDL_Rect& spriteRect);
+        void DrawTexture(SDL_Texture* texture, SDL_Rect& rect, SDL_Rect& sprRect);
+        void QueueTexture(SDL_Texture* texture, SDL_Rect& rect, SDL_Rect& sprRect);
 
-        void QueueString(std::string text, int size, int x, int y, Uint8 r, Uint8 g, Uint8 b) { strings.push_back({ text, size, x, y, r, g, b }); }
-        void QueueString(RenderText t) { strings.push_back(t); }
+        void QueueString(std::string text, int size, int x, int y, Uint8 r, Uint8 g, Uint8 b);
+        void QueueString(RenderText t);
 
     private:
         void DrawStrings();
-
         void RenderSurfaces();
 
     public: // Public accessors
@@ -370,16 +371,15 @@ namespace gobl
         void Draw();
         void DrawImmediate();
 
-        void SetDimensions(int w, int h);
-
         void SetAlpha(Uint8 alpha) { SDL_SetTextureAlphaMod(texture, alpha); }
         void SetColorMod(Color c) { SDL_SetTextureColorMod(texture, c.r, c.g, c.b); }
 
+        void SetDimensions(int w, int h);
         void SetDimensions(IntVec2 d) { SetDimensions(d.x, d.y); }
         IntVec2 GetDimensions() { return { sprRect.w, sprRect.h }; }
 
-        void SetSpriteIndex(int i) { sprRect.x = sprRect.w * i; }
-        int GetSpriteIndex() { return (sprRect.x / sprRect.w); }
+        void SetSpriteIndex(int x, int y = 0);
+        int GetSpriteIndex();
 
         bool Overlaps(int x, int y);
         bool Overlaps(IntVec2 pos) { return Overlaps(pos.x, pos.y); }

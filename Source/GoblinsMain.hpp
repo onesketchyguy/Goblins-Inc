@@ -41,7 +41,8 @@ public:
 	void DrawValidate(std::string prompt, bool& yes, bool& no);
 	void DrawTileOptions();
 
-	IntVec2 startCell;
+	IntVec2 startMouse{};
+	IntVec2 startCell{};
 	int startX, startY;
 	bool highlighting = false;
 

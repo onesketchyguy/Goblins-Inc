@@ -1,5 +1,14 @@
 #include "GoblinsMain.hpp"
 
+using namespace gobl;
+
+// Input
+bool GetMouseCam()
+{
+	return InputManager::instance->GetMouseButton(MOUSE_BUTTON::MB_MIDDLE) ||
+		InputManager::instance->GetMouseButton(MOUSE_BUTTON::MB_LEFT | MOUSE_BUTTON::MB_RIGHT) ||
+		InputManager::instance->GetKey(SDLK_SPACE) && InputManager::instance->GetMouseButton(MOUSE_BUTTON::MB_LEFT);
+}
 
 // Draw UI
 void GoblinsMain::DrawButton(std::string buttonText, IntVec2 pos, bool& clicked)
@@ -114,6 +123,7 @@ void GoblinsMain::DrawTileOptions()
 	mapTexture->SetUseCamera(true);
 }
 
+// Basic function
 bool GoblinsMain::Start()
 {
 	map = MAP::Map(this, 24, 24, "Mods/Environment.xml");
@@ -203,6 +213,14 @@ bool GoblinsMain::Update()
 
 	if (tileTypeIndex != -1)
 	{
+		if (Input().GetMouseButtonUp(MOUSE_BUTTON::MB_RIGHT)) 
+		{
+			highlighting = false;
+			tileTypeIndex = -1;
+
+			return true;
+		}
+
 		if (highlighting)
 		{
 			IntVec2 finalCell = map.GetTileMapPos(static_cast<int>(worldMouse.x), static_cast<int>(worldMouse.y));
@@ -286,10 +304,19 @@ bool GoblinsMain::Update()
 
 	float spd = 150.0f;
 	Vec2 camMove = {};
-	if (Input().GetKey(SDLK_RIGHT) || Input().GetKey(SDLK_d)) camMove.x += spd * time.fDeltaTime;
-	if (Input().GetKey(SDLK_LEFT) || Input().GetKey(SDLK_a)) camMove.x -= spd * time.fDeltaTime;
-	if (Input().GetKey(SDLK_UP) || Input().GetKey(SDLK_w)) camMove.y -= spd * time.fDeltaTime;
-	if (Input().GetKey(SDLK_DOWN) || Input().GetKey(SDLK_s)) camMove.y += spd * time.fDeltaTime;
+
+	if (GetMouseCam())
+	{
+		camMove.x -= mousePos.x - startMouse.x;
+		camMove.y -= mousePos.y - startMouse.y;
+	}
+
+	startMouse = mousePos;
+
+	if (Input().GetKey(SDLK_RIGHT)) camMove.x += spd * time.fDeltaTime;
+	if (Input().GetKey(SDLK_LEFT)) camMove.x -= spd * time.fDeltaTime;
+	if (Input().GetKey(SDLK_UP)) camMove.y -= spd * time.fDeltaTime;
+	if (Input().GetKey(SDLK_DOWN)) camMove.y += spd * time.fDeltaTime;
 
 	MoveCamera(camMove.x, camMove.y);
 	//MoveZoom(Input().GetMouseWheel() * time.deltaTime);

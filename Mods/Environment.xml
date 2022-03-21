@@ -1,4 +1,4 @@
-<EnvironmentSprite name="Environment.png" w="32" h="32"></EnvironmentSprite>
+<EnvironmentSprite name="Environment.png" w="32" h="32" debug="false"></EnvironmentSprite>
 
 <EnvironmentObject name="Grass">
 	<sprite i="0"></sprite>
@@ -17,7 +17,7 @@
 <EnvironmentObject name="Wall">
 	<sprite i="3"></sprite>
 	<buildable layer="wall"></buildable>
-	<placable layer="ground" multi="true"></placable>
+	<placable layer="ground" multi="true" linear="true"></placable>
 </EnvironmentObject>
 <EnvironmentObject name="Door">
 	<sprite i="4"></sprite>

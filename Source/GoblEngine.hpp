@@ -310,6 +310,7 @@ namespace gobl
         std::vector<RenderText> strings;
 
         const char* windowTitle = "undef";
+        const char* windowInfo = "";
         int WINDOW_WIDTH = 0, WINDOW_HEIGHT = 0;
 
         // Fonts
@@ -330,6 +331,15 @@ namespace gobl
             windowTitle = title;
             if (m_window != NULL) SDL_SetWindowTitle(m_window, title);
         }
+
+        void SetWinInfo(const char* info)
+        {
+            windowInfo = info;
+            std::string winowTitle = std::string(windowTitle) + " " + std::string(windowInfo);
+            if (m_window != NULL) SDL_SetWindowTitle(m_window, winowTitle.c_str());
+        }
+
+        const char* GetWinInfo() { return windowInfo; }
 
         void ClearPresentation() { SDL_RenderClear(sdlRenderer); }
         void PresentBackground();
@@ -444,6 +454,7 @@ namespace gobl
 
     public:
         Clock time;
+        bool debugging = false;
 
         void Launch()
         {
@@ -470,12 +481,11 @@ namespace gobl
 
                 time.Tick();
 
-                // Allow the user to close the window and that's it
-                inputManager.SetEatInput(1);
                 if (InputManager::instance->PollEvents() == false) appRunning = false;
 
                 if (Splash() == false) break;
                 splashTime -= static_cast<float>(time.deltaTime);
+                Debug();
 
                 renderer.Present();
             }
@@ -498,6 +508,7 @@ namespace gobl
                     // Draw the current frame content
                     Draw(renderer);
                     renderer.Present();
+                    Debug();
 
                     time.Tick();
                 }
@@ -543,11 +554,22 @@ namespace gobl
         virtual bool Start() { return true; }
         virtual bool Update() { return true; }
         virtual void Draw(GoblRenderer& renderer) {}
+        virtual void Debug() 
+        {
+            if (Input().GetKeyPressed(SDLK_F3)) debugging = !debugging;
+
+            if (debugging)
+            {
+                std::string value = "- FPS: " + std::to_string(time.GetFps());
+                value += " delta: " + std::to_string(time.deltaTime);
+                renderer.SetWinInfo(value.c_str());
+            }
+            else if (renderer.GetWinInfo() != "") renderer.SetWinInfo("");
+        }
         virtual bool Exit() { return true; } // Return true to complete exit
 
     protected:
         void SetTitle(const char* title) { renderer.SetWinTitle(title); }
-
 
         Vec2 GetCamera() { return cam.pos; }
         void MoveCamera(float mX, float mY)

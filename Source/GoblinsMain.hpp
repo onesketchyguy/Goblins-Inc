@@ -24,8 +24,6 @@ public:
 
 	MAP::Map map;
 
-	bool debugging = false;
-
 	// FIXME: Provide a proper scene system
 	Scene currScene = Scene::MainMenu;
 

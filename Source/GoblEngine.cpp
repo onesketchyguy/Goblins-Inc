@@ -329,7 +329,12 @@ namespace gobl
     void Sprite::Draw()
     {
         if (GetTextureExists() == false) CriticalError("ERROR: Cannot render a NULL texture.");
-        else renderer->QueueTexture(renderObject);
+        else 
+        {
+            RenderObject ro = RenderObject(renderObject);
+            ro.rect = GetRect(); // FIXME: This is a bandaid to a greater problem.
+            renderer->QueueTexture(ro);
+        }
     }
 
     void Sprite::DrawImmediate()

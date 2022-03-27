@@ -77,8 +77,8 @@ void GoblinsMain::DrawTileOptions()
 
 				if (debugging)
 				{
-					DrawString(map.GetTypeBuildable(i), x + 80, y + 15 + (50 * i));
-					DrawString(map.GetTypeLayer(i), x + 80, y + 30 + (50 * i));
+					DrawString(map.GetTypeBuildable(i), x + 80, y + 25 + (50 * i));
+					DrawString(map.GetTypeLayer(i), x + 80, y + 50 + (50 * i));
 				}
 			}
 			else
@@ -149,8 +149,6 @@ Color invalidPlacementColor = { 0, 0, 0, 75 };
 
 bool GoblinsMain::Update()
 {
-	if (Input().GetKeyPressed(SDLK_F3)) debugging = !debugging;
-
 	auto mousePos = Input().GetMouse();
 	auto worldMouse = Vec2{ mousePos.x + GetCamera().x, mousePos.y + GetCamera().y };
 

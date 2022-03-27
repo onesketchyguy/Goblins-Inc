@@ -132,8 +132,17 @@ namespace gobl
 {
     struct RenderObject 
     {
-        SDL_Texture* texture;
-        SDL_Rect rect, sprRect;
+        Color color{ 0xFF, 0xFF, 0xFF, 0xFF };
+        SDL_Texture* texture = nullptr;
+        SDL_Rect rect{}, sprRect{};
+
+        RenderObject(SDL_Texture* texture, SDL_Rect rect, SDL_Rect sprRect) 
+        {
+            this->texture = texture;
+            this->rect = rect;
+            this->sprRect = sprRect;
+        }
+        RenderObject() = default;
     };
 
     struct RenderText 
@@ -330,6 +339,7 @@ namespace gobl
         SDL_Texture* LoadTexture(const char* path, SDL_Rect& rect, SDL_Rect& sprRect);
         void DrawTexture(SDL_Texture* texture, SDL_Rect& rect, SDL_Rect& sprRect);
         void QueueTexture(SDL_Texture* texture, SDL_Rect& rect, SDL_Rect& sprRect);
+        void QueueTexture(RenderObject ro);
 
         void QueueString(std::string text, int size, int x, int y, Uint8 r, Uint8 g, Uint8 b);
         void QueueString(RenderText t);
@@ -347,9 +357,7 @@ namespace gobl
     class Sprite
     {
     private:
-        SDL_Texture* texture = nullptr;
-        SDL_Rect rect = { 0, 0, 0, 0 };
-        SDL_Rect sprRect = { 0, 0, 0, 0 };
+        RenderObject renderObject{};
 
         GoblRenderer* renderer = nullptr;
         Camera* cam = nullptr;
@@ -358,12 +366,12 @@ namespace gobl
 
         SDL_Rect GetRect() 
         {
-            if (useCam) return cam == nullptr ? rect : cam->GetRect(rect);
-            else return rect;
+            if (useCam) return cam == nullptr ? renderObject.rect : cam->GetRect(renderObject.rect);
+            else return renderObject.rect;
         }
 
     public:
-        bool GetTextureExists() { return texture != nullptr; }
+        bool GetTextureExists() { return renderObject.texture != nullptr; }
 
         Camera& GetCamera() { return *cam; }
         void SetCamera(Camera* cam) { this->cam = cam; }
@@ -372,12 +380,12 @@ namespace gobl
         void Draw();
         void DrawImmediate();
 
-        void SetAlpha(Uint8 alpha) { SDL_SetTextureAlphaMod(texture, alpha); }
-        void SetColorMod(Color c) { SDL_SetTextureColorMod(texture, c.r, c.g, c.b); }
+        void SetAlpha(Uint8 alpha) { renderObject.color.a = alpha; }
+        void SetColorMod(Color c) { renderObject.color = { c.r, c.g, c.b, c.a }; }
 
         void SetDimensions(int w, int h);
         void SetDimensions(IntVec2 d) { SetDimensions(d.x, d.y); }
-        IntVec2 GetDimensions() { return { sprRect.w, sprRect.h }; }
+        IntVec2 GetDimensions() { return { renderObject.sprRect.w, renderObject.sprRect.h }; }
 
         void SetSpriteIndex(int x, int y = 0);
         int GetSpriteIndex();
@@ -389,14 +397,14 @@ namespace gobl
         void SetScale(float v);
         void ModScale(int w, int h);
 
-        IntVec2 GetScale() { return { rect.w, rect.h }; }
+        IntVec2 GetScale() { return { renderObject.rect.w, renderObject.rect.h }; }
 
         // Mutators
         void SetPosition(int x, int y);
         void SetPosition(IntVec2 pos) { SetPosition(pos.x, pos.y); }
 
         // Accessors
-        IntVec2 GetPosition() { return { rect.x, rect.y }; }
+        IntVec2 GetPosition() { return { renderObject.rect.x, renderObject.rect.y }; }
         std::string GetRectDebugInfo();
 
     public:
@@ -412,7 +420,7 @@ namespace gobl
             if (cam != nullptr) SetCamera(cam);
         }
 
-        ~Sprite() { if (texture != NULL) SDL_DestroyTexture(texture); }
+        ~Sprite() { if (renderObject.texture != NULL) SDL_DestroyTexture(renderObject.texture); }
     };
 
     //class Object

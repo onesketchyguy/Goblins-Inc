@@ -144,6 +144,9 @@ bool GoblinsMain::Start()
 	return true;
 }
 
+Color validPlacementColor = { 0, 0, 0, 150 };
+Color invalidPlacementColor = { 0, 0, 0, 75 };
+
 bool GoblinsMain::Update()
 {
 	if (Input().GetKeyPressed(SDLK_F3)) debugging = !debugging;
@@ -153,8 +156,8 @@ bool GoblinsMain::Update()
 
 	if (debugging) 
 	{
-		DrawString("y" + std::to_string(mousePos.y), -90 + mousePos.x + 20, -90 + mousePos.y);
-		DrawString("x" + std::to_string(mousePos.x), -90 + mousePos.x, -90 + mousePos.y - 20);
+		DrawString("y" + std::to_string(mousePos.y), mousePos.x + 20, mousePos.y);
+		DrawString("x" + std::to_string(mousePos.x), mousePos.x, mousePos.y - 20);
 	}
 
 	if (quitToMenu || currScene == Scene::MainMenu)
@@ -255,8 +258,6 @@ bool GoblinsMain::Update()
 						if (abs(lenX) > abs(lenY)) lenY = 0; else lenX = 0;
 				}
 
-				highlightSprite.SetAlpha(255);
-
 				for (int y = 0; y < abs(lenY) + 1; y++)
 				{
 					short dirY = lenY > 0 ? y : -y;
@@ -270,14 +271,13 @@ bool GoblinsMain::Update()
 
 						if (map.GetTypeBuildable(tileLayer) == map.GetTypeLayer(tileTypeIndex))
 						{
-							if (highlighting == true)
-							{
-								highlightSprite.SetPosition(map.GetTilePos(id));
-								highlightSprite.Draw();
-							}
+							if (highlighting == true) highlightSprite.SetColorMod(validPlacementColor);
 							else map.ChangeTile(id, tileTypeIndex);
 						}
-						else highlightSprite.SetAlpha(150);
+						else highlightSprite.SetColorMod(invalidPlacementColor);
+
+						highlightSprite.SetPosition(map.GetTilePos(id));
+						highlightSprite.Draw();
 					}
 				}
 			}
@@ -302,8 +302,8 @@ bool GoblinsMain::Update()
 				if (Input().GetMouseButtonDown(MOUSE_BUTTON::MB_LEFT)) highlighting = true;
 
 				if (map.GetTypeBuildable(tileLayer) == map.GetTypeLayer(tileTypeIndex))
-					highlightSprite.SetAlpha(0xFF);
-				else highlightSprite.SetAlpha(50);
+					highlightSprite.SetColorMod(validPlacementColor);
+				else highlightSprite.SetColorMod(invalidPlacementColor);
 
 				highlightSprite.SetPosition(map.GetTilePos(tileId));
 				highlightSprite.Draw();

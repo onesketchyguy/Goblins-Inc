@@ -242,6 +242,7 @@ namespace gobl
     {
         renderObjects.push_back({texture, rect, sprRect});
     }
+    void GoblRenderer::QueueTexture(RenderObject ro) { renderObjects.push_back(ro); }
 
     void GoblRenderer::QueueString(std::string text, int size, int x, int y, Uint8 r, Uint8 g, Uint8 b)
     { 
@@ -309,6 +310,10 @@ namespace gobl
             r.x -= 1;
             r.y -= 1;
 
+            Color c = renderObjects.at(i).color;
+            SDL_SetTextureColorMod(renderObjects.at(i).texture, c.r, c.g, c.b);
+            SDL_SetTextureAlphaMod(renderObjects.at(i).texture, c.a);
+
             // Move the texture to the renderer
             if (SDL_RenderCopy(sdlRenderer, renderObjects.at(i).texture, &renderObjects.at(i).sprRect, &r) < 0)
                 std::cout << "ERROR: " << SDL_GetError() << std::endl;
@@ -324,33 +329,28 @@ namespace gobl
     void Sprite::Draw()
     {
         if (GetTextureExists() == false) CriticalError("ERROR: Cannot render a NULL texture.");
-        else
-        {
-            auto r = GetRect();
-            renderer->QueueTexture(texture, r, sprRect);
-        }
+        else renderer->QueueTexture(renderObject);
     }
 
     void Sprite::DrawImmediate()
     {
         if (GetTextureExists() == false) CriticalError("ERROR: Cannot render a NULL texture.");
-        else renderer->DrawTexture(texture, rect, sprRect);
+        else renderer->DrawTexture(renderObject.texture, renderObject.rect, renderObject.sprRect);
     }
-
 
     void Sprite::SetSpriteIndex(int x, int y) 
     {
-        sprRect.x = sprRect.w * x;
-        sprRect.y = sprRect.h * y;
+        renderObject.sprRect.x = renderObject.sprRect.w * x;
+        renderObject.sprRect.y = renderObject.sprRect.h * y;
     }
-    int Sprite::GetSpriteIndex() { return (sprRect.x / sprRect.w); }
+    int Sprite::GetSpriteIndex() { return (renderObject.sprRect.x / renderObject.sprRect.w); }
 
     void Sprite::SetDimensions(int w, int h)
     {
-        sprRect.w = w;
-        sprRect.h = h;
-        rect.w = w;
-        rect.h = h;
+        renderObject.sprRect.w = w;
+        renderObject.sprRect.h = h;
+        renderObject.rect.w = w;
+        renderObject.rect.h = h;
     }
 
     bool Sprite::Overlaps(int x, int y)
@@ -361,40 +361,40 @@ namespace gobl
 
     void Sprite::SetScale(int w, int h)
     {
-        rect.w = w;
-        rect.h = h;
+        renderObject.rect.w = w;
+        renderObject.rect.h = h;
     }
 
     void Sprite::SetScale(float v)
     {
-        rect.w = static_cast<int>(sprRect.w * v);
-        rect.h = static_cast<int>(sprRect.h * v);
+        renderObject.rect.w = static_cast<int>(renderObject.sprRect.w * v);
+        renderObject.rect.h = static_cast<int>(renderObject.sprRect.h * v);
     }
 
     void Sprite::ModScale(int w, int h)
     {
-        rect.w += static_cast<int>(w);
-        rect.h += static_cast<int>(h);
+        renderObject.rect.w += static_cast<int>(w);
+        renderObject.rect.h += static_cast<int>(h);
     }
 
     void Sprite::SetPosition(int x, int y)
     {
-        rect.x = x;
-        rect.y = y;
+        renderObject.rect.x = x;
+        renderObject.rect.y = y;
     }
 
     std::string Sprite::GetRectDebugInfo()
     {
-        return "Rect: x" + std::to_string(rect.x) + " y" + std::to_string(rect.y) + " w" +
-            std::to_string(rect.w) + " h" + std::to_string(rect.h) +
-            " sprRect: x" + std::to_string(sprRect.x) + " y" + std::to_string(sprRect.x) +
-            " w" + std::to_string(rect.w) + " h" + std::to_string(rect.h);
+        return "Rect: x" + std::to_string(renderObject.rect.x) + " y" + std::to_string(renderObject.rect.y) + " w" +
+            std::to_string(renderObject.rect.w) + " h" + std::to_string(renderObject.rect.h) +
+            " sprRect: x" + std::to_string(renderObject.sprRect.x) + " y" + std::to_string(renderObject.sprRect.x) +
+            " w" + std::to_string(renderObject.rect.w) + " h" + std::to_string(renderObject.rect.h);
     }
 
     void Sprite::LoadTexture(const char* path)
     {
         std::cout << "Loading texture... " << path << std::endl;
-        texture = renderer->LoadTexture(path, rect, sprRect);
+        renderObject.texture = renderer->LoadTexture(path, renderObject.rect, renderObject.sprRect);
     }
 
     void Sprite::Create(GoblRenderer* _renderer, const char* path, Camera* cam)

@@ -19,6 +19,8 @@ public:
 	gobl::Sprite button;
 	gobl::Sprite* mapTiles;
 
+	gobl::Switch testSwitch;
+
 	gobl::Sprite sprite;
 	gobl::Sprite highlightSprite;
 

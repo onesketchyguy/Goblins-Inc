@@ -591,4 +591,57 @@ namespace gobl
     };
 
 }
+
+// UI stuff
+namespace gobl
+{
+    class Switch 
+    {
+    private:
+        bool active = false;
+        Sprite spr;
+        IntVec2 pos{};
+
+    public:
+        Sprite& GetSprite() { return spr; }
+
+        const bool GetActive() { return active; }
+        void Toggle() { active = !active; }
+        void SetupSprite(GoblEngine* ge, const char* sprPath) { ge->CreateSpriteObject(spr, sprPath); }
+        void SetPosition(IntVec2 pos) { this->pos = pos; }
+
+        // FIXME: let the designer handle this stuff, don't hard code it
+        void Draw() 
+        {
+            spr.SetSpriteIndex(0);
+            spr.SetScale(3.0f);
+            spr.SetPosition(pos);
+            spr.Draw();
+            int halfW = spr.GetDimensions().x << 1;
+
+            spr.SetSpriteIndex(1);
+            spr.SetScale(3.0f);
+            spr.SetPosition({ -halfW + pos.x + (active ? spr.GetScale().x : 0), pos.y});
+            spr.Draw();
+        }
+
+        void Update() 
+        {
+            spr.SetSpriteIndex(0);
+            spr.SetScale(4.0f);
+            spr.SetPosition(pos);
+
+            if (spr.Overlaps(InputManager::instance->GetMouse())) 
+            {
+                if (InputManager::instance->GetMouseButtonUp(MB_LEFT)) 
+                {
+                    Toggle();
+                }
+            }
+
+            Draw();
+        }
+    };
+}
+
 #endif // !GOBLENGINE_H

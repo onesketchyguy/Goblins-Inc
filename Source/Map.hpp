@@ -39,8 +39,10 @@ namespace MAP
 		int* mapLayers;
 		Uint64 sprLength = 0;
 
+		gobl::GoblEngine* ge = nullptr;
+
 	private: // XML stuff
-		void LoadMapModData(gobl::GoblEngine* ge, const char* path);
+		void LoadMapModData(const char* path);
 
 	public: // Main map stuff
 		Map() = default;

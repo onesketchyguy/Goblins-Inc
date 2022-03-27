@@ -48,6 +48,13 @@ struct Color
         b = _b;
         a = _a;
     }
+
+    bool operator ==(const Color& b) const 
+    {
+        return (this->a == b.a && this->r == b.r && this->g == b.g && this->b == b.b);
+    }
+
+    bool operator !=(const Color& b) const { return !(*this == b); }
 };
 
 inline Uint32 ColorFromRGB(Uint8 r, Uint8 g, Uint8 b, Uint8 a = 0xFF)
@@ -370,24 +377,12 @@ namespace gobl
         RenderObject renderObject{};
 
         GoblRenderer* renderer = nullptr;
-        Camera* cam = nullptr;
-
-        bool useCam = true;
-
-        SDL_Rect GetRect() 
-        {
-            if (useCam) return cam == nullptr ? renderObject.rect : cam->GetRect(renderObject.rect);
-            else return renderObject.rect;
-        }
 
     public:
         bool GetTextureExists() { return renderObject.texture != nullptr; }
 
-        Camera& GetCamera() { return *cam; }
-        void SetCamera(Camera* cam) { this->cam = cam; }
-        void SetUseCamera(bool value) { useCam = value; }
-
         void Draw();
+        void DrawRelative(Camera* cam);
         void DrawImmediate();
 
         void SetAlpha(Uint8 alpha) { renderObject.color.a = alpha; }
@@ -419,15 +414,13 @@ namespace gobl
 
     public:
         void LoadTexture(const char* path);
-        void Create(GoblRenderer* _renderer, const char* path, Camera* cam = nullptr);
+        void Create(GoblRenderer* _renderer, const char* path);
 
         Sprite() = default;
         Sprite(const Sprite&) = delete;
-        Sprite(GoblRenderer* _renderer, const char* path = "", Camera* cam = nullptr) : renderer(_renderer)
+        Sprite(GoblRenderer* _renderer, const char* path = "") : renderer(_renderer)
         {
             if (path != "") LoadTexture(path);
-
-            if (cam != nullptr) SetCamera(cam);
         }
 
         ~Sprite() { if (renderObject.texture != NULL) SDL_DestroyTexture(renderObject.texture); }
@@ -522,8 +515,8 @@ namespace gobl
             TTF_Quit();
         }
 
-        Sprite* CreateSpriteObject(const char* path, bool useCam = false) { return new Sprite(&renderer, path, useCam ? &cam : nullptr); }
-        void CreateSpriteObject(Sprite& sprite, const char* path, bool useCam = false) { sprite.Create(&renderer, path, useCam ? &cam : nullptr); }
+        Sprite* CreateSpriteObject(const char* path) { return new Sprite(&renderer, path); }
+        void CreateSpriteObject(Sprite& sprite, const char* path) { sprite.Create(&renderer, path); }
 
         Sprite* GetEngineLogo() { return ngnLogo; }
         InputManager& Input() { return *InputManager::instance; }
@@ -568,8 +561,10 @@ namespace gobl
         }
         virtual bool Exit() { return true; } // Return true to complete exit
 
-    protected:
+    public:
         void SetTitle(const char* title) { renderer.SetWinTitle(title); }
+
+        Camera* GetCameraObject() { return &cam; }
 
         Vec2 GetCamera() { return cam.pos; }
         void MoveCamera(float mX, float mY)

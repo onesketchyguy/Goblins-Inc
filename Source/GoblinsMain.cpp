@@ -42,7 +42,6 @@ void GoblinsMain::DrawValidate(std::string prompt, bool& yes, bool& no)
 void GoblinsMain::DrawTileOptions()
 {
 	auto mapTexture = map.GetTexture();
-	mapTexture->SetUseCamera(false);
 	Uint32 highLighting = -1;
 
 	int x = 800;
@@ -119,8 +118,6 @@ void GoblinsMain::DrawTileOptions()
 
 		mapTexture->Draw();
 	}
-
-	mapTexture->SetUseCamera(true);
 }
 
 // Basic function
@@ -128,9 +125,9 @@ bool GoblinsMain::Start()
 {
 	map = MAP::Map(this, 24, 24, "Mods/Environment.xml");
 
-	CreateSpriteObject(highlightSprite, "Sprites/highlightTile.png", true);
+	CreateSpriteObject(highlightSprite, "Sprites/highlightTile.png");
 	highlightSprite.SetColorMod({ 0, 0, 0 });
-	CreateSpriteObject(sprite, "Sprites/worker.png", true);
+	CreateSpriteObject(sprite, "Sprites/worker.png");
 	CreateSpriteObject(title, "Sprites/Title_HighRes.png");
 	title.SetScale(0.9f);
 
@@ -225,7 +222,7 @@ bool GoblinsMain::Update()
 		return true;
 	}
 
-	sprite.Draw();
+	sprite.DrawRelative(GetCameraObject());
 
 	if (tileTypeIndex != -1)
 	{

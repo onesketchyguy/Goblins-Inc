@@ -77,7 +77,7 @@ namespace MAP
 			std::cout << "ERROR: No " << element << " attributes found!" << std::endl;
 		}
 	}
-	void Map::LoadMapModData(gobl::GoblEngine* ge, const char* path)
+	void Map::LoadMapModData(const char* path)
 	{
 		std::string texturePath = "Sprites/";
 
@@ -172,7 +172,7 @@ namespace MAP
 
 			// Only create one new sprite for the entire map texture
 			// Create the sprite object
-			envTex = ge->CreateSpriteObject(texturePath.c_str(), true);
+			envTex = ge->CreateSpriteObject(texturePath.c_str());
 			envTex->SetDimensions(sprSize.x, sprSize.y);
 
 		}
@@ -192,8 +192,10 @@ namespace MAP
 
 		for (Uint32 i = 0; i < mapLength; i++) mapLayers[i] = 0; // FIXME: Load old map data
 
+		this->ge = ge;
+
 		// Load all the mods
-		LoadMapModData(ge, path);
+		LoadMapModData(path);
 	}
 
 	void Map::Draw()
@@ -207,7 +209,7 @@ namespace MAP
 
 			envTex->SetSpriteIndex(GetTypeSprite(mapLayers[i]));
 			envTex->SetPosition(envTex->GetScale().x * x, envTex->GetScale().y * y);
-			envTex->Draw();
+			envTex->DrawRelative(ge->GetCameraObject());
 		}
 	}
 

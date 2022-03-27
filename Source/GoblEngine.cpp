@@ -302,6 +302,9 @@ namespace gobl
 
     void GoblRenderer::RenderSurfaces()
     {
+        SDL_Texture* lastT = nullptr;
+        Color lastC{ 0xFF, 0xFF, 0xFF, 0xFF };
+
         for (size_t i = 0; i < renderObjects.size(); i++)
         {
             auto r = renderObjects.at(i).rect;
@@ -311,11 +314,18 @@ namespace gobl
             r.y -= 1;
 
             Color c = renderObjects.at(i).color;
-            SDL_SetTextureColorMod(renderObjects.at(i).texture, c.r, c.g, c.b);
-            SDL_SetTextureAlphaMod(renderObjects.at(i).texture, c.a);
+
+            if (c != lastC || lastT != renderObjects.at(i).texture)
+            {
+                SDL_SetTextureColorMod(renderObjects.at(i).texture, c.r, c.g, c.b);
+                SDL_SetTextureAlphaMod(renderObjects.at(i).texture, c.a);
+
+                lastC = c;
+                lastT = renderObjects.at(i).texture;
+            }
 
             // Move the texture to the renderer
-            if (SDL_RenderCopy(sdlRenderer, renderObjects.at(i).texture, &renderObjects.at(i).sprRect, &r) < 0)
+            if (SDL_RenderCopy(sdlRenderer, lastT, &renderObjects.at(i).sprRect, &r) < 0)
                 std::cout << "ERROR: " << SDL_GetError() << std::endl;
         }
 
@@ -326,13 +336,24 @@ namespace gobl
 // Sprite
 namespace gobl 
 {
+    void TranslateRect(Camera* cam, RenderObject& ro)
+    {
+        ro.rect = cam->GetRect(ro.rect);
+    }
+
     void Sprite::Draw()
     {
         if (GetTextureExists() == false) CriticalError("ERROR: Cannot render a NULL texture.");
-        else 
+        else renderer->QueueTexture(renderObject);
+    }
+
+    void Sprite::DrawRelative(Camera* cam) 
+    {
+        if (GetTextureExists() == false) CriticalError("ERROR: Cannot render a NULL texture.");
+        else
         {
             RenderObject ro = RenderObject(renderObject);
-            ro.rect = GetRect(); // FIXME: This is a bandaid to a greater problem.
+            TranslateRect(cam, ro); // FIXME: This is a bandaid to a greater problem.
             renderer->QueueTexture(ro);
         }
     }
@@ -360,7 +381,8 @@ namespace gobl
 
     bool Sprite::Overlaps(int x, int y)
     {
-        auto r = GetRect();
+        // FIXME: Ask for a camera relative position
+        auto r = renderObject.rect; //GetRect();
         return (y >= r.y && y <= r.y + r.h) && (x >= r.x && x <= r.x + r.w);
     }
 
@@ -402,11 +424,9 @@ namespace gobl
         renderObject.texture = renderer->LoadTexture(path, renderObject.rect, renderObject.sprRect);
     }
 
-    void Sprite::Create(GoblRenderer* _renderer, const char* path, Camera* cam)
+    void Sprite::Create(GoblRenderer* _renderer, const char* path)
     {
         renderer = _renderer;
         if (path != "") LoadTexture(path);
-
-        if (cam != nullptr) SetCamera(cam);
     }
 }

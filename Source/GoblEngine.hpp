@@ -254,8 +254,7 @@ namespace gobl
     {
     private:
         int mouseX = 0, mouseY = 0;
-        Uint8 mouseButton = 0;
-        Uint8 prevButton = 0;
+        Uint8 mouseButton = 0, prevButton = 0;
 
         Uint64 eatInput = 0;
 
@@ -270,14 +269,14 @@ namespace gobl
 
         bool PollEvents();
 
-        bool GetKey(SDL_Keycode keycode) { return keyMap[keycode] != KEY_NONE && keyMap[keycode] != KEY_RELEASED; }
-        bool GetKeyPressed(SDL_Keycode keycode);
-        bool GetKeyReleased(SDL_Keycode keycode);
-        bool GetMouseButton(Uint8 b) { return mouseButton == b; }
-        bool GetMouseButtonDown(Uint8 b) { return mouseButton == b && prevButton != b; }
-        bool GetMouseButtonUp(Uint8 b) { return mouseButton != b && prevButton == b; }
-        float GetMouseWheel() { return static_cast<float>(mouseWheel - prevMouseWheel); }
-        IntVec2 GetMouse() { return { mouseX, mouseY }; }
+        static bool GetKey(SDL_Keycode keycode) { return instance->keyMap[keycode] != KEY_NONE && instance->keyMap[keycode] != KEY_RELEASED; }
+        static bool GetKeyPressed(SDL_Keycode keycode);
+        static bool GetKeyReleased(SDL_Keycode keycode);
+        static bool GetMouseButton(Uint8 b) { return instance->mouseButton == b; }
+        static bool GetMouseButtonDown(Uint8 b) { return instance->mouseButton == b && instance->prevButton != b; }
+        static bool GetMouseButtonUp(Uint8 b) { return instance->mouseButton != b && instance->prevButton == b; }
+        static float GetMouseWheel() { return static_cast<float>(instance->mouseWheel - instance->prevMouseWheel); }
+        static IntVec2 GetMouse() { return { instance->mouseX, instance->mouseY }; }
 
         // Functional stuff
         void SetEatInput(int amnt) { eatInput = amnt; }
@@ -519,7 +518,6 @@ namespace gobl
         void CreateSpriteObject(Sprite& sprite, const char* path) { sprite.Create(&renderer, path); }
 
         Sprite* GetEngineLogo() { return ngnLogo; }
-        InputManager& Input() { return *InputManager::instance; }
 
     protected:
         virtual void Init() { SetTitle("demo"); }
@@ -549,7 +547,7 @@ namespace gobl
         virtual void Draw(GoblRenderer& renderer) {}
         virtual void Debug() 
         {
-            if (Input().GetKeyPressed(SDLK_F3)) debugging = !debugging;
+            if (InputManager::GetKeyPressed(SDLK_F3)) debugging = !debugging;
 
             if (debugging)
             {
@@ -631,9 +629,9 @@ namespace gobl
             spr.SetScale(4.0f);
             spr.SetPosition(pos);
 
-            if (spr.Overlaps(InputManager::instance->GetMouse())) 
+            if (spr.Overlaps(InputManager::GetMouse())) 
             {
-                if (InputManager::instance->GetMouseButtonUp(MB_LEFT)) 
+                if (InputManager::GetMouseButtonUp(MB_LEFT)) 
                 {
                     Toggle();
                 }

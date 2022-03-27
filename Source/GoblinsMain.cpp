@@ -5,9 +5,9 @@ using namespace gobl;
 // Input
 bool GetMouseCam()
 {
-	return InputManager::instance->GetMouseButton(MOUSE_BUTTON::MB_MIDDLE) ||
-		InputManager::instance->GetMouseButton(MOUSE_BUTTON::MB_LEFT | MOUSE_BUTTON::MB_RIGHT) ||
-		InputManager::instance->GetKey(SDLK_SPACE) && InputManager::instance->GetMouseButton(MOUSE_BUTTON::MB_LEFT);
+	return InputManager::GetMouseButton(MOUSE_BUTTON::MB_MIDDLE) ||
+		InputManager::GetMouseButton(MOUSE_BUTTON::MB_LEFT | MOUSE_BUTTON::MB_RIGHT) ||
+		InputManager::GetKey(SDLK_SPACE) && InputManager::instance->GetMouseButton(MOUSE_BUTTON::MB_LEFT);
 }
 
 // Draw UI
@@ -17,11 +17,11 @@ void GoblinsMain::DrawButton(std::string buttonText, IntVec2 pos, bool& clicked)
 	button.Draw();
 
 	Color c = { 100, 100, 100 };
-	if (button.Overlaps(Input().GetMouse().x, Input().GetMouse().y))
+	if (button.Overlaps(InputManager::GetMouse().x, InputManager::GetMouse().y))
 	{
 		c.r = c.g = c.b = 0;
 
-		if (Input().GetMouseButton(MOUSE_BUTTON::MB_LEFT))
+		if (InputManager::GetMouseButton(MOUSE_BUTTON::MB_LEFT))
 		{
 			clicked = true;
 		}
@@ -52,9 +52,9 @@ void GoblinsMain::DrawTileOptions()
 		mapTexture->SetPosition(x, y + (50 * i));
 		mapTexture->SetScale(1.6f);
 
-		if (mapTexture->Overlaps(Input().GetMouse()))
+		if (mapTexture->Overlaps(InputManager::GetMouse()))
 		{
-			if (Input().GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT)) tileTypeIndex = i;
+			if (InputManager::GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT)) tileTypeIndex = i;
 
 			highLighting = i;
 		}
@@ -101,11 +101,11 @@ void GoblinsMain::DrawTileOptions()
 		mapTexture->SetPosition(x - 10, 25);
 		mapTexture->SetScale(2.0f);
 
-		if (mapTexture->Overlaps(Input().GetMouse()))
+		if (mapTexture->Overlaps(InputManager::GetMouse()))
 		{
 			mapTexture->SetScale(2.05f);
 
-			if (Input().GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT)) tileTypeIndex = -1;
+			if (InputManager::GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT)) tileTypeIndex = -1;
 		}
 
 		DrawString(map.GetTypeName(tileTypeIndex), x, 5);
@@ -151,7 +151,7 @@ Color invalidPlacementColor = { 0, 0, 0, 75 };
 
 bool GoblinsMain::Update()
 {
-	auto mousePos = Input().GetMouse();
+	auto mousePos = InputManager::GetMouse();
 	auto worldMouse = Vec2{ mousePos.x + GetCamera().x, mousePos.y + GetCamera().y };
 
 	if (debugging)
@@ -219,7 +219,7 @@ bool GoblinsMain::Update()
 		{
 			// FIXME: Unload menu content
 			currScene = Scene::Game;
-			Input().SetEatInput(10); // Eat 10 frames of input
+			InputManager::instance->SetEatInput(10); // Eat 10 frames of input
 		}
 
 		if (quitButton) quittingApp = true;
@@ -233,7 +233,7 @@ bool GoblinsMain::Update()
 	{
 		if (tileTypeIndex != -1)
 		{
-			if (Input().GetMouseButtonUp(MOUSE_BUTTON::MB_RIGHT))
+			if (InputManager::GetMouseButtonUp(MOUSE_BUTTON::MB_RIGHT))
 			{
 				highlighting = false;
 				tileTypeIndex = -1;
@@ -244,7 +244,7 @@ bool GoblinsMain::Update()
 			if (highlighting)
 			{
 				IntVec2 finalCell = map.GetTileMapPos(static_cast<int>(worldMouse.x), static_cast<int>(worldMouse.y));
-				if (Input().GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT)) highlighting = false;
+				if (InputManager::GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT)) highlighting = false;
 
 				if (finalCell.x != -1 && finalCell.y != -1)
 				{
@@ -301,7 +301,7 @@ bool GoblinsMain::Update()
 						DrawString(map.GetTypeLayer(map.GetTileLayer(tileId)), mousePos.x + 40, mousePos.y - 60);
 					}
 
-					if (Input().GetMouseButtonDown(MOUSE_BUTTON::MB_LEFT)) highlighting = true;
+					if (InputManager::GetMouseButtonDown(MOUSE_BUTTON::MB_LEFT)) highlighting = true;
 
 					if (map.GetTypeBuildable(tileLayer) == map.GetTypeLayer(tileTypeIndex))
 						highlightSprite.SetColorMod(validPlacementColor);
@@ -319,8 +319,7 @@ bool GoblinsMain::Update()
 
 	testSwitch.Update();
 
-	if (Input().GetKeyPressed(SDLK_ESCAPE)) quitToMenu = true; // FIXME: Pause instead of just quitting
-
+	if (InputManager::GetKeyPressed(SDLK_ESCAPE)) quitToMenu = true; // FIXME: Pause instead of just quitting
 
 	float spd = 150.0f;
 	Vec2 camMove = {};
@@ -333,10 +332,10 @@ bool GoblinsMain::Update()
 
 	startMouse = mousePos;
 
-	if (Input().GetKey(SDLK_RIGHT)) camMove.x += spd * time.fDeltaTime;
-	if (Input().GetKey(SDLK_LEFT)) camMove.x -= spd * time.fDeltaTime;
-	if (Input().GetKey(SDLK_UP)) camMove.y -= spd * time.fDeltaTime;
-	if (Input().GetKey(SDLK_DOWN)) camMove.y += spd * time.fDeltaTime;
+	if (InputManager::GetKey(SDLK_RIGHT)) camMove.x += spd * time.fDeltaTime;
+	if (InputManager::GetKey(SDLK_LEFT)) camMove.x -= spd * time.fDeltaTime;
+	if (InputManager::GetKey(SDLK_UP)) camMove.y -= spd * time.fDeltaTime;
+	if (InputManager::GetKey(SDLK_DOWN)) camMove.y += spd * time.fDeltaTime;
 
 	MoveCamera(camMove.x, camMove.y);
 	//MoveZoom(Input().GetMouseWheel() * time.deltaTime);

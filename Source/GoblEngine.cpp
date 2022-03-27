@@ -58,15 +58,15 @@ namespace gobl
 
     bool InputManager::GetKeyPressed(SDL_Keycode keycode)
     {
-        if (keyMap.find(keycode) == keyMap.end())
+        if (instance->keyMap.find(keycode) == instance->keyMap.end())
         {
-            keyMap[keycode] = KEY_NONE;
+            instance->keyMap[keycode] = KEY_NONE;
             return false;
         }
 
-        if (keyMap[keycode] == KEY_PRESSED)
+        if (instance->keyMap[keycode] == KEY_PRESSED)
         {
-            keyMap[keycode] = KEY_HELD;
+            instance->keyMap[keycode] = KEY_HELD;
             return true;
         }
 
@@ -75,15 +75,15 @@ namespace gobl
 
     bool InputManager::GetKeyReleased(SDL_Keycode keycode)
     {
-        if (keyMap.find(keycode) == keyMap.end())
+        if (instance->keyMap.find(keycode) == instance->keyMap.end())
         {
-            keyMap[keycode] = KEY_NONE;
+            instance->keyMap[keycode] = KEY_NONE;
             return false;
         }
 
-        if (keyMap[keycode] == KEY_RELEASED)
+        if (instance->keyMap[keycode] == KEY_RELEASED)
         {
-            keyMap[keycode] = KEY_NONE;
+            instance->keyMap[keycode] = KEY_NONE;
             return true;
         }
 
@@ -91,6 +91,7 @@ namespace gobl
     }
 
 	InputManager* InputManager::instance = nullptr;
+
 }
 
 // Renderer

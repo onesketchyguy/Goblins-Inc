@@ -183,26 +183,27 @@ namespace MAP
 	}
 
 	// Map stuff
-	Map::Map(gobl::GoblEngine* ge, int w, int h, const char* path)
+	Map::Map(gobl::GoblEngine* ge, int w, int h, const char* path) : ge(ge), width(w), height(h)
 	{
-		width = w;
-		height = h;
 		mapLength = width * height;
 		mapLayers = new int[mapLength];
 
 		for (Uint32 i = 0; i < mapLength; i++) mapLayers[i] = 0; // FIXME: Load old map data
 
-		this->ge = ge;
-
 		// Load all the mods
 		LoadMapModData(path);
 	}
 
+	void Map::ResetTexture() 
+	{
+		envTex->SetDimensions(sprSize);
+		envTex->SetColorMod({ 255, 255, 255, 255 });
+	}
+
+	// DEPRECATED: Far too inefficient to be worth using
 	void Map::Draw()
 	{
-		envTex->SetDimensions(sprSize.x, sprSize.y);
-
-		for (Uint32 i = 0; i < mapLength; i++)
+		for (size_t i = 0; i < mapLength; i++)
 		{
 			int x = i % width;
 			int y = i / width;
@@ -213,9 +214,34 @@ namespace MAP
 		}
 	}
 
+	void Map::DrawRegion(Uint32 w, Uint32 h, int offX, int offY)
+	{
+		if (offX < 0) offX = 0;
+		if (offY < 0) offY = 0;
+
+		Uint64 i = 0;
+		for (Uint32 x = offX; x < offX + w; x++)
+		{
+			if (x >= width) continue;
+
+			for (Uint32 y = offY; y < offY + h; y++)
+			{
+				if (y >= height) continue;
+
+				i = y * width + x;
+
+				// FIXME: Implement lights
+
+				envTex->SetSpriteIndex(GetTypeSprite(mapLayers[i]));
+				envTex->SetPosition(envTex->GetScale().x * x, envTex->GetScale().y * y);
+				envTex->DrawRelative(ge->GetCameraObject());
+			}
+		}
+	}
+
 	bool Map::Overlaps(int id, int x, int y)
 	{
-		auto scale = envTex->GetScale();
+		IntVec2 scale = envTex->GetScale();
 
 		int tileX = scale.x * (id % width);
 		int tileY = scale.y * (id / width);
@@ -250,6 +276,17 @@ namespace MAP
 		if (x > width * envTex->GetScale().x || x < 0) return IntVec2{ -1, -1 };
 		if (y > height * envTex->GetScale().y || y < 0) return IntVec2{ -1, -1 };
 
+		x -= x % envTex->GetScale().x;
+		y -= y % envTex->GetScale().y;
+
+		x /= envTex->GetScale().x;
+		y /= envTex->GetScale().y;
+
+		return IntVec2{ x, y };
+	}
+
+	IntVec2 Map::GetClosestTileMapPos(int x, int y)
+	{
 		x -= x % envTex->GetScale().x;
 		y -= y % envTex->GetScale().y;
 

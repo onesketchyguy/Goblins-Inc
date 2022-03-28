@@ -6,9 +6,9 @@
 #include <SDL_image.h>
 #include <SDL_ttf.h>
 #include <iostream>
-#include <fstream>
-#include "../libs/json.hpp"
-using json = nlohmann::json;
+#include <vector>
+#include <unordered_map>
+#include <string>
 
 inline float lerp(float a, float b, float f) { return (a * (1.0f - f)) + (b * f); }
 
@@ -137,15 +137,32 @@ enum KeyState : Uint8
 
 namespace gobl
 {
+    class TextureManager
+    {
+    private:
+        static std::vector<SDL_Texture*> textures;
+
+    public:
+        static SDL_Texture* GetTexture(int id) { return textures.at(id); }
+
+        // FIXME: Make the texture manager store the texture instead of the sprite object
+        static int CreateTexture(SDL_Texture* texture) 
+        {
+            textures.push_back(texture);
+
+            return textures.size() - 1;
+        }
+    };
+
     struct RenderObject 
     {
         Color color{ 0xFF, 0xFF, 0xFF, 0xFF };
-        SDL_Texture* texture = nullptr;
+        int textureId = -1;
         SDL_Rect rect{}, sprRect{};
 
         RenderObject(SDL_Texture* texture, SDL_Rect rect, SDL_Rect sprRect) 
         {
-            this->texture = texture;
+            textureId = TextureManager::CreateTexture(texture);
             this->rect = rect;
             this->sprRect = sprRect;
         }
@@ -181,65 +198,6 @@ namespace gobl
             g = _g;
             b = _b;
             outline = _o;
-        }
-    };
-
-    struct InitializationData
-    {
-        bool soundEnabled = true;
-        int windowWidth = 1024;
-        int windowHeight = 720;
-
-        // Write JSON to file
-        const static void WriteToJson(InitializationData& settings, std::string fileName = "Data/init.json")
-        {
-            std::ofstream o(fileName.c_str());
-
-            json j;
-            j["soundEnabled"] = settings.soundEnabled;
-            j["windowWidth"] = settings.windowWidth;
-            j["windowHeight"] = settings.windowHeight;
-            o << j << std::endl;
-
-            o.close();
-        }
-
-        // Read a JSON file
-        const static bool LoadJsonData(InitializationData& settings, std::string fileName = "Data/init.json")
-        {
-            std::ifstream fs(fileName.c_str());
-
-            if (fs.is_open() == false)
-            {
-                std::cout << "No settings file found. Returning default settings." << std::endl;
-                return false;
-            }
-
-            std::cout << "Found file... ";
-            std::string content;
-
-            while (fs.eof() == false)
-            {
-                std::string lineContent;
-                std::getline(fs, lineContent);
-
-                content += lineContent;
-            }
-
-            fs.close();
-
-            if (content.empty() == false)
-            {
-                auto j = json::parse(content);
-
-                settings.soundEnabled = j.at("soundEnabled");
-                settings.windowWidth = j.at("windowWidth");
-                settings.windowHeight = j.at("windowHeight");
-            }
-
-            std::cout << "Settings loaded." << std::endl;
-
-            return true;
         }
     };
 
@@ -378,7 +336,7 @@ namespace gobl
         GoblRenderer* renderer = nullptr;
 
     public:
-        bool GetTextureExists() { return renderObject.texture != nullptr; }
+        bool GetTextureExists() { return renderObject.textureId != -1; }
 
         void Draw();
         void DrawRelative(Camera* cam);
@@ -422,7 +380,12 @@ namespace gobl
             if (path != "") LoadTexture(path);
         }
 
-        ~Sprite() { if (renderObject.texture != NULL) SDL_DestroyTexture(renderObject.texture); }
+        // FIXME: This might not work...
+        ~Sprite()
+        { 
+            if (renderObject.textureId != -1) 
+                SDL_DestroyTexture(TextureManager::GetTexture(renderObject.textureId)); 
+        }
     };
 
     //class Object
@@ -572,6 +535,9 @@ namespace gobl
         }
         void MoveZoom(float amnt) { cam.zoom += amnt; }
 
+        Uint32 GetScreenWidth() { return renderer.GetWindowWidth(); }
+        Uint32 GetScreenHeight() { return renderer.GetWindowHeight(); }
+
     public: // Draw functions
         GoblEngine& DrawString(std::string text, int x = 0, int y = 0, int size = 20, Uint8 r = 0xFF, Uint8 g = 0xFF, Uint8 b = 0xFF)
         {
@@ -611,15 +577,19 @@ namespace gobl
         // FIXME: let the designer handle this stuff, don't hard code it
         void Draw() 
         {
+            spr.SetDimensions(20, 12);
             spr.SetSpriteIndex(0);
             spr.SetScale(3.0f);
             spr.SetPosition(pos);
+            spr.SetAlpha(100);
             spr.Draw();
-            int halfW = spr.GetDimensions().x << 1;
+            int w = spr.GetDimensions().x / 3;
 
             spr.SetSpriteIndex(1);
+            spr.SetDimensions(13, 12);
             spr.SetScale(3.0f);
-            spr.SetPosition({ -halfW + pos.x + (active ? spr.GetScale().x : 0), pos.y});
+            spr.SetPosition({ pos.x + (active ? spr.GetScale().x - (w + 5) : -5), pos.y });
+            spr.SetAlpha(255);
             spr.Draw();
         }
 

@@ -1,4 +1,7 @@
 #include "GoblEngine.hpp"
+#include "../libs/json.hpp"
+#include <fstream>
+using json = nlohmann::json;
 
 // Input manager
 namespace gobl
@@ -97,6 +100,67 @@ namespace gobl
 // Renderer
 namespace gobl 
 {
+    std::vector<SDL_Texture*> TextureManager::textures{};
+
+    struct InitializationData
+    {
+        bool soundEnabled = true;
+        int windowWidth = 1024;
+        int windowHeight = 720;
+
+        // Write JSON to file
+        const static void WriteToJson(InitializationData& settings, std::string fileName = "Data/init.json")
+        {
+            std::ofstream o(fileName.c_str());
+
+            json j;
+            j["soundEnabled"] = settings.soundEnabled;
+            j["windowWidth"] = settings.windowWidth;
+            j["windowHeight"] = settings.windowHeight;
+            o << j << std::endl;
+
+            o.close();
+        }
+
+        // Read a JSON file
+        const static bool LoadJsonData(InitializationData& settings, std::string fileName = "Data/init.json")
+        {
+            std::ifstream fs(fileName.c_str());
+
+            if (fs.is_open() == false)
+            {
+                std::cout << "No settings file found. Returning default settings." << std::endl;
+                return false;
+            }
+
+            std::cout << "Found file... ";
+            std::string content;
+
+            while (fs.eof() == false)
+            {
+                std::string lineContent;
+                std::getline(fs, lineContent);
+
+                content += lineContent;
+            }
+
+            fs.close();
+
+            if (content.empty() == false)
+            {
+                auto j = json::parse(content);
+
+                settings.soundEnabled = j.at("soundEnabled");
+                settings.windowWidth = j.at("windowWidth");
+                settings.windowHeight = j.at("windowHeight");
+            }
+
+            std::cout << "Settings loaded." << std::endl;
+
+            return true;
+        }
+    };
+
     bool GoblRenderer::Init()
     {
         InitializationData settings;
@@ -303,7 +367,7 @@ namespace gobl
 
     void GoblRenderer::RenderSurfaces()
     {
-        SDL_Texture* lastT = nullptr;
+        int lastT = -1;
         Color lastC{ 0xFF, 0xFF, 0xFF, 0xFF };
 
         for (size_t i = 0; i < renderObjects.size(); i++)
@@ -315,18 +379,19 @@ namespace gobl
             r.y -= 1;
 
             Color c = renderObjects.at(i).color;
+            SDL_Texture* texture = TextureManager::GetTexture(renderObjects.at(i).textureId);
 
-            if (c != lastC || lastT != renderObjects.at(i).texture)
+            if (c != lastC || lastT != renderObjects.at(i).textureId)
             {
-                SDL_SetTextureColorMod(renderObjects.at(i).texture, c.r, c.g, c.b);
-                SDL_SetTextureAlphaMod(renderObjects.at(i).texture, c.a);
+                SDL_SetTextureColorMod(texture, c.r, c.g, c.b);
+                SDL_SetTextureAlphaMod(texture, c.a);
 
                 lastC = c;
-                lastT = renderObjects.at(i).texture;
+                lastT = renderObjects.at(i).textureId;
             }
 
             // Move the texture to the renderer
-            if (SDL_RenderCopy(sdlRenderer, lastT, &renderObjects.at(i).sprRect, &r) < 0)
+            if (SDL_RenderCopy(sdlRenderer, texture, &renderObjects.at(i).sprRect, &r) < 0)
                 std::cout << "ERROR: " << SDL_GetError() << std::endl;
         }
 
@@ -357,12 +422,6 @@ namespace gobl
             TranslateRect(cam, ro); // FIXME: This is a bandaid to a greater problem.
             renderer->QueueTexture(ro);
         }
-    }
-
-    void Sprite::DrawImmediate()
-    {
-        if (GetTextureExists() == false) CriticalError("ERROR: Cannot render a NULL texture.");
-        else renderer->DrawTexture(renderObject.texture, renderObject.rect, renderObject.sprRect);
     }
 
     void Sprite::SetSpriteIndex(int x, int y) 
@@ -422,7 +481,7 @@ namespace gobl
     void Sprite::LoadTexture(const char* path)
     {
         std::cout << "Loading texture... " << path << std::endl;
-        renderObject.texture = renderer->LoadTexture(path, renderObject.rect, renderObject.sprRect);
+        renderObject.textureId = TextureManager::CreateTexture(renderer->LoadTexture(path, renderObject.rect, renderObject.sprRect));
     }
 
     void Sprite::Create(GoblRenderer* _renderer, const char* path)

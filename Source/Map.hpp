@@ -49,7 +49,11 @@ namespace MAP
 		void Destroy() { if (envTex != nullptr) delete envTex; }
 
 		Map(gobl::GoblEngine* ge, int w, int h, const char* path);
+		void ResetTexture();
 		void Draw();
+		void DrawRegion(Uint32 w, Uint32 h, int x, int y);
+
+		const IntVec2 GetMapSize() { return { width, height }; }
 
 		Uint32 GetTileTypeCount() { return envObjects.size(); }
 
@@ -69,6 +73,7 @@ namespace MAP
 		int GetTile(int x, int y);
 		int GetTileFromWorldPos(int x, int y);
 		IntVec2 GetTileMapPos(int x, int y);
+		IntVec2 GetClosestTileMapPos(int x, int y);
 		IntVec2 GetTilePos(int id);
 	};
 }

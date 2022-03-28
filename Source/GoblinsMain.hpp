@@ -17,7 +17,6 @@ class GoblinsMain : public gobl::GoblEngine
 public:
 	gobl::Sprite title;
 	gobl::Sprite button;
-	gobl::Sprite* mapTiles;
 
 	gobl::Switch testSwitch;
 
@@ -39,7 +38,8 @@ public:
 
 	void DrawButton(std::string buttonText, IntVec2 pos, bool& clicked);
 	void DrawValidate(std::string prompt, bool& yes, bool& no);
-	void DrawTileOptions();
+	bool DrawTileOptions();
+	void DrawWorld();
 
 	IntVec2 startMouse{};
 	IntVec2 startCell{};

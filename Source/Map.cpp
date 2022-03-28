@@ -216,6 +216,7 @@ namespace MAP
 
 	void Map::DrawRegion(Uint32 w, Uint32 h, int offX, int offY)
 	{
+		ResetTexture();
 		if (offX < 0) offX = 0;
 		if (offY < 0) offY = 0;
 
@@ -237,6 +238,11 @@ namespace MAP
 				envTex->DrawRelative(ge->GetCameraObject());
 			}
 		}
+	}
+
+	void Map::BlurDrawRegion(Uint32 w, Uint32 h, int offX, int offY)
+	{
+		DrawRegion(w, h, offX, offY);
 	}
 
 	bool Map::Overlaps(int id, int x, int y)

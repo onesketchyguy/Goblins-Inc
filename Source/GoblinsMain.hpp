@@ -39,11 +39,8 @@ public:
 	void DrawButton(std::string buttonText, IntVec2 pos, bool& clicked);
 	void DrawValidate(std::string prompt, bool& yes, bool& no);
 	bool DrawTileOptions();
-	void DrawWorld();
+	void DrawWorld(bool blur = false);
 
-	IntVec2 startMouse{};
-	IntVec2 startCell{};
-	int startX, startY;
 	bool highlighting = false;
 
 private:

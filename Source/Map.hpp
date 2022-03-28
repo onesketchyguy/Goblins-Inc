@@ -52,6 +52,7 @@ namespace MAP
 		void ResetTexture();
 		void Draw();
 		void DrawRegion(Uint32 w, Uint32 h, int x, int y);
+		void BlurDrawRegion(Uint32 w, Uint32 h, int offX, int offY);
 
 		const IntVec2 GetMapSize() { return { width, height }; }
 

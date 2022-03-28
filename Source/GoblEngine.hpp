@@ -511,9 +511,17 @@ namespace gobl
         virtual void Debug() 
         {
             if (InputManager::GetKeyPressed(SDLK_F3)) debugging = !debugging;
-
             if (debugging)
             {
+                auto mousePos = InputManager::GetMouse();
+                if (mousePos.x > 0 && mousePos.x < GetScreenWidth())
+                    DrawOutlinedString("x" + std::to_string(mousePos.x), mousePos.x, mousePos.y - 20, 20, 3U);
+                if (mousePos.y > 0 && mousePos.y < GetScreenHeight())
+                    DrawOutlinedString("y" + std::to_string(mousePos.y), mousePos.x + 20, mousePos.y, 20, 3U);
+
+                DrawOutlinedString(std::to_string(time.deltaTime), 0, 0, 20, 3U);
+                DrawOutlinedString(std::to_string(time.GetFps()), 0, 20, 20, 3U);
+
                 std::string value = "- FPS: " + std::to_string(time.GetFps());
                 value += " delta: " + std::to_string(time.deltaTime);
                 renderer.SetWinInfo(value.c_str());

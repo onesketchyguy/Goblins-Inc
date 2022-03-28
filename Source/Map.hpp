@@ -57,12 +57,12 @@ namespace MAP
 
 		Uint32 GetTileTypeCount() { return envObjects.size(); }
 
-		std::string GetTypeName(int layerId) { return envObjects[layerId].name; }
-		std::string GetTypeLayer(int layerId) { return envObjects[layerId].layer; }
-		std::string GetTypeBuildable(int layerId) { return envObjects[layerId].buildLayer; }
-		bool GetTypeMultiPlace(int layerId) { return envObjects[layerId].canMultiPlace; }
-		bool GetTypeLinear(int layerId) { return envObjects[layerId].linear; }
-		Uint32 GetTypeSprite(int layerId) { return envObjects[layerId].sprIndex; }
+		std::string GetTypeName(const Uint32 layerId) { return envObjects[layerId].name; }
+		std::string GetTypeLayer(const Uint32 layerId) { return envObjects[layerId].layer; }
+		std::string GetTypeBuildable(const Uint32 layerId) { return envObjects[layerId].buildLayer; }
+		bool GetTypeMultiPlace(const Uint32 layerId) { return envObjects[layerId].canMultiPlace; }
+		bool GetTypeLinear(const Uint32 layerId) { return envObjects[layerId].linear; }
+		Uint32 GetTypeSprite(const Uint32 layerId) { return envObjects[layerId].sprIndex; }
 
 		void ChangeTile(int id, Uint32 index) { mapLayers[id] = index; }
 		Uint32 GetTileLayer(int id) { return mapLayers[id]; }

@@ -25,45 +25,64 @@ namespace MAP
 		int sprIndex = 0;
 	};
 
+	struct ObjectData
+	{
+		std::string name = "";
+		int sprIndex = 0;
+	};
+
 	class Map
 	{
 	private:
 		Uint16 width = 0, height = 0;
 		Uint32 mapLength = 0;
 
+		std::vector<TileData> tiles{};
 		gobl::Sprite* envTex = nullptr;
 		IntVec2 sprSize{ 0,0 };
 
-		std::vector<MAP::TileData> envObjects{};
+		std::vector<ObjectData> objects{};
+		std::vector<gobl::Sprite*> objSprites{};
 
 		int* mapLayers;
+		int* objLayers;
 		Uint64 sprLength = 0;
 
 		gobl::GoblEngine* ge = nullptr;
 
 	private: // XML stuff
 		void LoadMapModData(const char* path);
+		void LoadObjModData(const char* path);
 
 	public: // Main map stuff
 		Map() = default;
-		void Destroy() { if (envTex != nullptr) delete envTex; }
+		void Destroy() 
+		{
+			if (envTex != nullptr) delete envTex; 
+
+			delete mapLayers;
+			delete objLayers;
+
+			for (auto& s : objSprites) delete s;
+		}
 
 		Map(gobl::GoblEngine* ge, int w, int h, const char* path);
 		void ResetTexture();
+		void DrawTile(Uint32 x, Uint32 y);
 		void Draw();
 		void DrawRegion(Uint32 w, Uint32 h, int x, int y);
 		void BlurDrawRegion(Uint32 w, Uint32 h, int offX, int offY);
 
 		const IntVec2 GetMapSize() { return { width, height }; }
 
-		Uint32 GetTileTypeCount() { return envObjects.size(); }
+		Uint32 GetTileTypeCount() { return tiles.size(); }
 
-		std::string GetTypeName(const Uint32 layerId) { return envObjects[layerId].name; }
-		std::string GetTypeLayer(const Uint32 layerId) { return envObjects[layerId].layer; }
-		std::string GetTypeBuildable(const Uint32 layerId) { return envObjects[layerId].buildLayer; }
-		bool GetTypeMultiPlace(const Uint32 layerId) { return envObjects[layerId].canMultiPlace; }
-		bool GetTypeLinear(const Uint32 layerId) { return envObjects[layerId].linear; }
-		Uint32 GetTypeSprite(const Uint32 layerId) { return envObjects[layerId].sprIndex; }
+		std::string GetTypeName(const Uint32 layerId) { return tiles[layerId].name; }
+		std::string GetTypeLayer(const Uint32 layerId) { return tiles[layerId].layer; }
+		std::string GetTypeBuildable(const Uint32 layerId) { return tiles[layerId].buildLayer; }
+		bool GetTypeMultiPlace(const Uint32 layerId) { return tiles[layerId].canMultiPlace; }
+		bool GetTypeLinear(const Uint32 layerId) { return tiles[layerId].linear; }
+		Uint32 GetTypeSprite(const Uint32 layerId) { return tiles[layerId].sprIndex; }
 
 		void ChangeTile(int id, Uint32 index) { mapLayers[id] = index; }
 		Uint32 GetTileLayer(int id) { return mapLayers[id]; }

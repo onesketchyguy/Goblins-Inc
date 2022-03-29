@@ -374,7 +374,7 @@ namespace gobl
         void Create(GoblRenderer* _renderer, const char* path);
 
         Sprite() = default;
-        Sprite(const Sprite&) = delete;
+        //Sprite(const Sprite&) = delete;
         Sprite(GoblRenderer* _renderer, const char* path = "") : renderer(_renderer)
         {
             if (path != "") LoadTexture(path);
@@ -514,9 +514,9 @@ namespace gobl
             if (debugging)
             {
                 auto mousePos = InputManager::GetMouse();
-                if (mousePos.x > 0 && mousePos.x < GetScreenWidth())
+                if (mousePos.x > 0 && static_cast<Uint32>(mousePos.x) < GetScreenWidth())
                     DrawOutlinedString("x" + std::to_string(mousePos.x), mousePos.x, mousePos.y - 20, 20, 3U);
-                if (mousePos.y > 0 && mousePos.y < GetScreenHeight())
+                if (mousePos.y > 0 && static_cast<Uint32>(mousePos.y) < GetScreenHeight())
                     DrawOutlinedString("y" + std::to_string(mousePos.y), mousePos.x + 20, mousePos.y, 20, 3U);
 
                 DrawOutlinedString(std::to_string(time.deltaTime), 0, 0, 20, 3U);

@@ -150,7 +150,7 @@ bool GoblinsMain::DrawTileOptions()
 // Basic function
 bool GoblinsMain::Start()
 {
-	map = MAP::Map(this, 64, 64, "Mods/Environment.xml");
+	map = MAP::Map(this, 64, 64, "Mods/");
 
 	CreateSpriteObject(highlightSprite, "Sprites/highlightTile.png");
 	highlightSprite.SetColorMod({ 0, 0, 0 });
@@ -325,7 +325,7 @@ bool GoblinsMain::Update()
 			}
 		}
 	}
-	else tileTypeIndex = -1;
+	else if (testSwitch.GetActive() == false) tileTypeIndex = -1;
 
 	// Draw UI
 	testSwitch.Update();

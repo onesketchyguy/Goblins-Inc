@@ -3,6 +3,7 @@
 
 namespace MAP
 {
+	const std::string TEXTURE_PATH = "Sprites/";
 	bool MAP_DEBUG_VERBOSE = false;
 
 	// XML stuff
@@ -79,7 +80,7 @@ namespace MAP
 	}
 	void Map::LoadMapModData(const char* path)
 	{
-		std::string texturePath = "Sprites/";
+		std::string texturePath = TEXTURE_PATH;
 
 		tinyxml2::XMLDocument doc;
 		doc.LoadFile(path);
@@ -156,7 +157,7 @@ namespace MAP
 					}
 
 					// Provide info for buildable tag and others
-					envObjects.push_back(tileData);
+					tiles.push_back(tileData);
 
 					id++;
 				}
@@ -181,23 +182,97 @@ namespace MAP
 			std::cout << "ERROR: No environment mod found!" << std::endl;
 		}
 	}
+	void Map::LoadObjModData(const char* path)
+	{
+		std::string texturePath = TEXTURE_PATH;
+
+		ObjectData obj{};
+
+		tinyxml2::XMLDocument doc;
+		doc.LoadFile(path);
+
+		// First get mod name
+		auto currElement = doc.FirstChildElement();
+		obj.name = std::string(currElement->FindAttribute("name")->Value());
+
+		if (MAP_DEBUG_VERBOSE) std::cout << "ModObject: " << obj.name << std::endl;
+
+		// Then get mod elements
+		currElement = currElement->FirstChildElement();
+		std::string elementName = std::string(currElement->Name());
+
+		if (MAP_DEBUG_VERBOSE) std::cout << "\t" << elementName << " tag: " << std::endl;
+
+		// Read attributes
+		auto curAtt = currElement->FirstAttribute();
+		if (curAtt != nullptr)
+		{
+			while (curAtt != nullptr)
+			{
+				std::string currAttValue = std::string(curAtt->Value());
+
+				if (std::string(curAtt->Name()) == "name" && elementName == "sprite")
+				{
+					texturePath += currAttValue;
+
+					if (MAP_DEBUG_VERBOSE)
+						std::cout << "\t\tSprite location attribute: " << texturePath << std::endl;
+				}
+
+				curAtt = curAtt->Next();
+			}
+		}
+
+		// Push the object to the stack
+		obj.sprIndex = objSprites.size();
+		objSprites.push_back(new gobl::Sprite());
+		objSprites[obj.sprIndex] = ge->CreateSpriteObject(texturePath.c_str());
+		objects.push_back(obj);
+	}
 
 	// Map stuff
 	Map::Map(gobl::GoblEngine* ge, int w, int h, const char* path) : ge(ge), width(w), height(h)
 	{
 		mapLength = width * height;
 		mapLayers = new int[mapLength];
+		objLayers = new int[mapLength];
 
 		for (Uint32 i = 0; i < mapLength; i++) mapLayers[i] = 0; // FIXME: Load old map data
+		for (Uint32 i = 0; i < mapLength; i++) objLayers[i] = -1; // FIXME: Load old map data
+
+		// FIXME: Provide an enumerator through the files
 
 		// Load all the mods
-		LoadMapModData(path);
+		std::string envMods = path + std::string("Environment.xml");
+		LoadMapModData(envMods.c_str());
+		std::string objMods = path + std::string("StandardItems.xml");
+		LoadObjModData(objMods.c_str());
 	}
 
 	void Map::ResetTexture() 
 	{
 		envTex->SetDimensions(sprSize);
 		envTex->SetColorMod({ 255, 255, 255, 255 });
+	}
+
+	void Map::DrawTile(Uint32 x, Uint32 y) 
+	{
+		Uint64 i = i = y * width + x;
+
+		// FIXME: Implement lights
+
+		// Draw tiles
+		envTex->SetSpriteIndex(GetTypeSprite(mapLayers[i]));
+		envTex->SetPosition(envTex->GetScale().x * x, envTex->GetScale().y * y);
+		envTex->DrawRelative(ge->GetCameraObject());
+
+		// Draw items
+		if (objLayers[i] >= 0)
+		{
+			Uint32 sprIndex = objects[objLayers[i]].sprIndex;
+			objSprites[sprIndex]->SetPosition(envTex->GetScale().x * x, envTex->GetScale().y * y);
+			objSprites[sprIndex]->DrawRelative(ge->GetCameraObject());
+		}
 	}
 
 	// DEPRECATED: Far too inefficient to be worth using
@@ -208,9 +283,7 @@ namespace MAP
 			int x = i % width;
 			int y = i / width;
 
-			envTex->SetSpriteIndex(GetTypeSprite(mapLayers[i]));
-			envTex->SetPosition(envTex->GetScale().x * x, envTex->GetScale().y * y);
-			envTex->DrawRelative(ge->GetCameraObject());
+			DrawTile(x, y);
 		}
 	}
 
@@ -220,7 +293,6 @@ namespace MAP
 		if (offX < 0) offX = 0;
 		if (offY < 0) offY = 0;
 
-		Uint64 i = 0;
 		for (Uint32 x = offX; x < offX + w; x++)
 		{
 			if (x >= width) continue;
@@ -229,13 +301,7 @@ namespace MAP
 			{
 				if (y >= height) continue;
 
-				i = y * width + x;
-
-				// FIXME: Implement lights
-
-				envTex->SetSpriteIndex(GetTypeSprite(mapLayers[i]));
-				envTex->SetPosition(envTex->GetScale().x * x, envTex->GetScale().y * y);
-				envTex->DrawRelative(ge->GetCameraObject());
+				DrawTile(x, y);
 			}
 		}
 	}

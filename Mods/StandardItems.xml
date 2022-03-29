@@ -1,0 +1,14 @@
+<ModObject name="Desk" price="50">
+	<sprite name="Desk.png"></sprite>
+	<canRotate></canRotate>
+	<workable>0.1</workable>
+	<childPos posX="-0.32" posY="0.0"></childPos>
+</ModObject>
+<ModObject name="Blood cooler" price="150">
+	<sprite name="BloodCooler.png"></sprite>
+	<need type="thirst">5</need>
+</ModObject>
+<ModObject name="Vending machine" price="200">
+	<sprite name="VendingMachine.png"></sprite>
+	<need type="hunger">50</need>
+</ModObject>

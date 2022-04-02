@@ -10,18 +10,10 @@ namespace MAP
 	bool MAP_DEBUG_VERBOSE = false;
 
 	// XML stuff
-	void HandleObjAttributes(tinyxml2::XMLElement* currElement, MAP::ObjectData& obj, std::string& texturePath)
+	void HandleAttributes(tinyxml2::XMLElement* currElement, MAP::TileData& tileData, std::string& texturePath)
 	{
-		obj.name = std::string(currElement->FindAttribute("name")->Value());
-
-		if (MAP_DEBUG_VERBOSE) std::cout << "ModObject: " << obj.name << std::endl;
-
-		// Then get mod elements
-		currElement = currElement->FirstChildElement();
 		std::string elementName = std::string(currElement->Name());
 
-		if (MAP_DEBUG_VERBOSE) std::cout << "\t" << elementName << " tag: " << std::endl;
-
 		// Read attributes
 		auto curAtt = currElement->FirstAttribute();
 		if (curAtt != nullptr)
@@ -30,49 +22,30 @@ namespace MAP
 			{
 				std::string currAttValue = std::string(curAtt->Value());
 
-				if (std::string(curAtt->Name()) == "name" && elementName == "sprite")
-				{
-					texturePath += currAttValue;
-
-					if (MAP_DEBUG_VERBOSE)
-						std::cout << "\t\tSprite location attribute: " << texturePath << std::endl;
-				}
-
-				curAtt = curAtt->Next();
-			}
-		}
-	}
-	void HandleMapAttributes(tinyxml2::XMLElement* currElement, MAP::TileData& tileData)
-	{
-		std::string element = std::string(currElement->Name());
-
-		if (MAP_DEBUG_VERBOSE) std::cout << "\t" << element << " tag: " << std::endl;
-
-		// Read attributes
-		auto curAtt = currElement->FirstAttribute();
-		if (curAtt != nullptr)
-		{
-			while (curAtt != nullptr)
-			{
-				std::string currAttValue = std::string(curAtt->Value());
-
-				if (std::string(curAtt->Name()) == "i" && element == "sprite")
+				if (std::string(curAtt->Name()) == "i" && elementName == "sprite")
 				{
 					tileData.sprIndex = std::stoi(curAtt->Value());
 
 					if (MAP_DEBUG_VERBOSE)
 						std::cout << "\t\tIndex attribute: " << tileData.sprIndex << std::endl;
 				}
+				else if (std::string(curAtt->Name()) == "name" && elementName == "sprite")
+				{
+					texturePath += currAttValue;
+
+					if (MAP_DEBUG_VERBOSE)
+						std::cout << "\t\tSprite location attribute: " << texturePath << std::endl;
+				}
 				else if (std::string(curAtt->Name()) == "layer")
 				{
-					if (element == "buildable")
+					if (elementName == "buildable")
 					{
 						tileData.buildLayer = currAttValue;
 
 						if (MAP_DEBUG_VERBOSE)
 							std::cout << "\t\tLayer attribute: " << tileData.buildLayer << std::endl;
 					}
-					else if (element == "placable")
+					else if (elementName == "placable")
 					{
 						tileData.layer = currAttValue;
 
@@ -85,19 +58,19 @@ namespace MAP
 							std::cout << "\t\tLayer Attribute found on unknown tag: " << curAtt->Value() << std::endl;
 					}
 				}
-				else if (std::string(curAtt->Name()) == "multi" && element == "placable")
+				else if (std::string(curAtt->Name()) == "multi" && elementName == "placable")
 				{
 					if (currAttValue == "true") tileData.canMultiPlace = true;
 
 					if (MAP_DEBUG_VERBOSE)
 						std::cout << "\t\tMulti-place Attribute: " << curAtt->Value() << std::endl;
 				}
-				else if (std::string(curAtt->Name()) == "linear" && element == "placable")
+				else if (std::string(curAtt->Name()) == "linear" && elementName == "placable")
 				{
 					if (currAttValue == "true") tileData.linear = true;
 
 					if (MAP_DEBUG_VERBOSE)
-						std::cout << "\t\tMulti-place Attribute: " << curAtt->Value() << std::endl;
+						std::cout << "\t\tLinear-place Attribute: " << curAtt->Value() << std::endl;
 				}
 				else
 				{
@@ -110,7 +83,27 @@ namespace MAP
 		}
 		else
 		{
-			std::cout << "ERROR: No " << element << " attributes found!" << std::endl;
+			std::cout << "ERROR: No " << elementName << " attributes found!" << std::endl;
+		}
+	}
+	void HandleObjElements(tinyxml2::XMLElement* currElement, MAP::TileData& tileData, std::string& texturePath)
+	{
+		tileData.name = std::string(currElement->FindAttribute("name")->Value());
+
+		if (MAP_DEBUG_VERBOSE) std::cout << "ModObject: " << tileData.name << std::endl;
+
+		// Then get mod elements
+		currElement = currElement->FirstChildElement();
+		while (currElement != nullptr) 
+		{
+			std::string elementName = std::string(currElement->Name());
+
+			if (MAP_DEBUG_VERBOSE) std::cout << "\t" << elementName << " tag: " << std::endl;
+
+			// Read attributes
+			HandleAttributes(currElement, tileData, texturePath);
+
+			currElement = currElement->NextSiblingElement();
 		}
 	}
 	void Map::LoadMapModData(const char* path)
@@ -185,7 +178,8 @@ namespace MAP
 					// Read each element of that mod object
 					while (curModElement != nullptr)
 					{
-						HandleMapAttributes(curModElement, tileData);
+						std::string empty = "";
+						HandleAttributes(curModElement, tileData, empty);
 
 						// Move to next element
 						curModElement = curModElement->NextSiblingElement();
@@ -226,9 +220,9 @@ namespace MAP
 		while (currElement != nullptr) 
 		{
 			std::string texturePath = TEXTURE_PATH;
-			ObjectData obj{};
+			TileData obj{};
 
-			HandleObjAttributes(currElement, obj, texturePath);
+			HandleObjElements(currElement, obj, texturePath);
 
 			// Push the object to the stack
 			obj.sprIndex = objSprites.size();

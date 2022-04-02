@@ -25,12 +25,6 @@ namespace MAP
 		int sprIndex = 0;
 	};
 
-	struct ObjectData
-	{
-		std::string name = "";
-		int sprIndex = 0;
-	};
-
 	class Map
 	{
 	private:
@@ -41,7 +35,7 @@ namespace MAP
 		gobl::Sprite* envTex = nullptr;
 		IntVec2 sprSize{ 0,0 };
 
-		std::vector<ObjectData> objects{};
+		std::vector<TileData> objects{};
 		std::vector<gobl::Sprite*> objSprites{};
 
 		Uint32* mapLayers;
@@ -79,6 +73,7 @@ namespace MAP
 		Uint32 GetObjectCount() { return objSprites.size(); }
 		gobl::Sprite* GetObjTexture(const Uint32 index) { return objSprites[index]; }
 
+		MAP::TileData GetObjectType(const Uint32 layerID) { return objects[layerID]; }
 		void SetObject(Uint32 id, Sint32 index) { objLayers[id] = index; };
 
 		MAP::TileData GetType(const Uint32 layerID) { return tiles[layerID]; }

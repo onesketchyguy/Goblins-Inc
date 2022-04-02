@@ -8,6 +8,10 @@ IntVec2 startCell{};
 bool highlighting = false;
 Uint32 tileTypeIndex = -1;
 
+Color validPlacementColor = { 0, 0, 0, 150 };
+Color invalidPlacementColor = { 0, 0, 0, 75 };
+
+
 // Tools
 bool CanPlace(const MAP::TileData& a, const MAP::TileData& b) { return a.buildLayer != "" && a.buildLayer == b.layer; }
 
@@ -214,6 +218,103 @@ bool GoblinsMain::DrawTileOptions()
 	return highLighting != -1 || DrawObjectOptions();
 }
 
+void GoblinsMain::HandlePlaceItems()
+{
+	Vec2 worldMouse = GetCamera() + InputManager::GetMouse();
+
+	if (InputManager::GetMouseButtonUp(MOUSE_BUTTON::MB_RIGHT))
+	{
+		highlighting = false;
+		tileTypeIndex = -1;
+
+		return;
+	}
+
+	if (highlighting == false)
+	{
+		startCell = map.GetTileMapPos(static_cast<int>(worldMouse.x), static_cast<int>(worldMouse.y));
+	}
+
+
+	IntVec2 finalCell = map.GetTileMapPos(static_cast<int>(worldMouse.x), static_cast<int>(worldMouse.y));
+	if (InputManager::GetMouseButtonDown(MOUSE_BUTTON::MB_LEFT)) highlighting = true;
+	if (InputManager::GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT)) highlighting = false;
+
+	if (finalCell.x != -1 && finalCell.y != -1)
+	{
+		short lenX = 0;
+		short lenY = 0;
+
+		if (tileTypeIndex < map.GetTileTypeCount())
+		{
+			// Place tiles
+			if (map.GetType(tileTypeIndex).canMultiPlace == true)
+			{
+				lenX = finalCell.x - startCell.x;
+				lenY = finalCell.y - startCell.y;
+
+				if (map.GetType(tileTypeIndex).linear == true)
+				{
+					if (abs(lenX) > abs(lenY)) lenY = 0; else lenX = 0;
+				}
+			}
+
+			for (int y = 0; y < abs(lenY) + 1; y++)
+			{
+				short dirY = lenY > 0 ? y : -y;
+
+				for (int x = 0; x < abs(lenX) + 1; x++)
+				{
+					short dirX = lenX > 0 ? x : -x;
+
+					int id = map.GetTile(finalCell.x - dirX, finalCell.y - dirY);
+					Uint32 tileLayer = map.GetTileLayer(id);
+
+					if (CanPlace(map.GetType(tileLayer), map.GetType(tileTypeIndex)))
+					{
+						if (InputManager::GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT) == false)
+							highlightSprite.SetColorMod(validPlacementColor);
+						else map.ChangeTile(id, tileTypeIndex);
+					}
+					else highlightSprite.SetColorMod(invalidPlacementColor);
+
+					highlightSprite.SetPosition(map.GetTilePos(id));
+					highlightSprite.DrawRelative(GetCameraObject());
+				}
+			}
+		}
+		else
+		{
+			// Place items
+
+			int id = map.GetTile(finalCell.x, finalCell.y);
+			highlightSprite.SetPosition(map.GetTilePos(id));
+
+			Uint32 index = tileTypeIndex - map.GetTileTypeCount();
+
+			if (CanPlace(map.GetType(map.GetTileLayer(id)), map.GetObjectType(index)))
+			{
+				if (InputManager::GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT) == false)
+				{
+					highlightSprite.SetColorMod(validPlacementColor);
+					map.GetObjTexture(index)->SetColorMod(Color::WHITE);
+				}
+				else map.SetObject(id, index);
+			}
+			else
+			{
+				highlightSprite.SetColorMod(invalidPlacementColor);
+				map.GetObjTexture(index)->SetColorMod(Color::RED);
+			}
+
+
+
+			map.GetObjTexture(index)->SetPosition(map.GetTilePos(id))->DrawRelative(GetCameraObject());
+			highlightSprite.DrawRelative(GetCameraObject());
+		}
+	}
+}
+
 // Basic function
 bool GoblinsMain::Start()
 {
@@ -245,9 +346,6 @@ bool GoblinsMain::Start()
 	return true;
 }
 
-Color validPlacementColor = { 0, 0, 0, 150 };
-Color invalidPlacementColor = { 0, 0, 0, 75 };
-
 void GoblinsMain::DrawWorld(bool blur)
 {
 	IntVec2 cell = map.GetClosestTileMapPos(static_cast<int>(GetCamera().x), static_cast<int>(GetCamera().y));
@@ -259,18 +357,10 @@ void GoblinsMain::DrawWorld(bool blur)
 bool GoblinsMain::Update()
 {
 	auto mousePos = InputManager::GetMouse();
-	auto worldMouse = Vec2{ mousePos.x + GetCamera().x, mousePos.y + GetCamera().y };
+	Vec2 worldMouse = GetCamera() + InputManager::GetMouse();
 
-	if (quitToMenu || currScene == Scene::MainMenu)
-	{
-		// BLUR
-		DrawWorld(true);
-	}
-	else
-	{
-		// UNBLUR
-		DrawWorld();
-	}
+	bool blur = quitToMenu || currScene == Scene::MainMenu;
+	DrawWorld(blur);
 
 	if (quittingApp)
 	{
@@ -333,97 +423,7 @@ bool GoblinsMain::Update()
 	{
 		if (tileTypeIndex != -1)
 		{
-			if (InputManager::GetMouseButtonUp(MOUSE_BUTTON::MB_RIGHT))
-			{
-				highlighting = false;
-				tileTypeIndex = -1;
-
-				return true;
-			}
-
-			if (highlighting == false)
-			{
-				startCell = map.GetTileMapPos(static_cast<int>(worldMouse.x), static_cast<int>(worldMouse.y));
-			}
-
-
-			IntVec2 finalCell = map.GetTileMapPos(static_cast<int>(worldMouse.x), static_cast<int>(worldMouse.y));
-			if (InputManager::GetMouseButtonDown(MOUSE_BUTTON::MB_LEFT)) highlighting = true;
-			if (InputManager::GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT)) highlighting = false;
-
-			if (finalCell.x != -1 && finalCell.y != -1)
-			{
-				short lenX = 0;
-				short lenY = 0;
-
-				if (tileTypeIndex < map.GetTileTypeCount()) 
-				{
-					// Place tiles
-					if (map.GetType(tileTypeIndex).canMultiPlace == true)
-					{
-						lenX = finalCell.x - startCell.x;
-						lenY = finalCell.y - startCell.y;
-
-						if (map.GetType(tileTypeIndex).linear == true)
-						{
-							if (abs(lenX) > abs(lenY)) lenY = 0; else lenX = 0;
-						}
-					}
-
-					for (int y = 0; y < abs(lenY) + 1; y++)
-					{
-						short dirY = lenY > 0 ? y : -y;
-
-						for (int x = 0; x < abs(lenX) + 1; x++)
-						{
-							short dirX = lenX > 0 ? x : -x;
-
-							int id = map.GetTile(finalCell.x - dirX, finalCell.y - dirY);
-							Uint32 tileLayer = map.GetTileLayer(id);
-
-							if (CanPlace(map.GetType(tileLayer), map.GetType(tileTypeIndex)))
-							{
-								if (InputManager::GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT) == false)
-									highlightSprite.SetColorMod(validPlacementColor);
-								else map.ChangeTile(id, tileTypeIndex);
-							}
-							else highlightSprite.SetColorMod(invalidPlacementColor);
-
-							highlightSprite.SetPosition(map.GetTilePos(id));
-							highlightSprite.DrawRelative(GetCameraObject());
-						}
-					}
-				}
-				else 
-				{
-					// Place items
-					
-					int id = map.GetTile(finalCell.x, finalCell.y);
-					highlightSprite.SetPosition(map.GetTilePos(id));
-
-					Uint32 index = tileTypeIndex - map.GetTileTypeCount();
-
-					if (CanPlace(map.GetType(map.GetTileLayer(id)), map.GetObjectType(index)))
-					{
-						if (InputManager::GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT) == false)
-						{
-							highlightSprite.SetColorMod(validPlacementColor);
-							map.GetObjTexture(index)->SetColorMod(Color::WHITE);
-						}
-						else map.SetObject(id, index);
-					}
-					else 
-					{
-						highlightSprite.SetColorMod(invalidPlacementColor);
-						map.GetObjTexture(index)->SetColorMod(Color::RED);
-					}
-
-
-
-					map.GetObjTexture(index)->SetPosition(map.GetTilePos(id))->DrawRelative(GetCameraObject());
-					highlightSprite.DrawRelative(GetCameraObject());
-				}
-			}
+			HandlePlaceItems();
 		}
 	}
 	else if (testSwitch.GetActive() == false) tileTypeIndex = -1;

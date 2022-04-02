@@ -36,6 +36,7 @@ public:
 	//int texturesLoaded = 0;
 	//const int texturesToLoad = 5;
 
+	void HandlePlaceItems();
 	void DrawButton(std::string buttonText, IntVec2 pos, bool& clicked);
 	void DrawValidate(std::string prompt, bool& yes, bool& no);
 	void DrawSelectedObject();
@@ -45,13 +46,9 @@ public:
 
 private:
 	void Init() override { SetTitle("Goblins inc."); }
-
 	bool Start() override;
-
 	bool Update() override;
-
 	void Draw(gobl::GoblRenderer& renderer) override;
-
 	bool Exit() override
 	{
 		map.Destroy();

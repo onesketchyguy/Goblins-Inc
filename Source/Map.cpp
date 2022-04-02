@@ -263,13 +263,26 @@ namespace MAP
 		for (Uint32 i = 0; i < mapLength; i++) mapLayers[i] = 0; // FIXME: Load old map data
 		for (Uint32 i = 0; i < mapLength; i++) objLayers[i] = -1; // FIXME: Load old map data
 
-		// FIXME: Provide an enumerator through the files
-
 		// Load all the mods
-		std::string envMods = path + std::string("Environment.xml");
-		LoadMapModData(envMods.c_str());
-		std::string objMods = path + std::string("StandardItems.xml");
-		LoadObjModData(objMods.c_str());
+		for (const auto& file : std::filesystem::recursive_directory_iterator(path))
+		{
+			if (file.is_directory() || file.path().extension() != ".xml") continue;
+
+			if (file.path().filename() == "Environment.xml")
+			{
+				std::cout << "Found environment file." << std::endl;
+				std::string envMods = path + std::string("Environment.xml");
+				LoadMapModData(envMods.c_str());
+			}
+			else 
+			{
+				std::string modPath = path + file.path().filename().string();
+				std::cout << "-Loading mod: " << modPath << std::endl;
+				LoadObjModData(modPath.c_str());
+			}
+		}
+
+		std::cout << "Finished loading mods." << std::endl;
 	}
 
 	void Map::ResetTexture() 

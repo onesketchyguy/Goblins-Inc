@@ -1,4 +1,4 @@
-<ModObject debug="true" name="Desk" price="50" rotate="true">
+<ModObject name="Desk" price="50" rotate="true">
 	<sprite name="Desk.png"></sprite>
 	<workable script="basicWork.lua">0.1</workable>
 	<child posX="-0.32" posY="0.0"></child>

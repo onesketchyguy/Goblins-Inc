@@ -389,7 +389,6 @@ bool GoblinsMain::Update()
 			quitToMenu = false;
 		}
 
-		// FIXME: instead of not drawing anything we should draw the background but fuzzy
 		return true;
 	}
 
@@ -451,7 +450,8 @@ bool GoblinsMain::Update()
 	if (InputManager::GetKey(SDLK_DOWN)) camMove.y += spd * time.fDeltaTime;
 
 	MoveCamera(camMove.x, camMove.y);
-	//MoveZoom(Input().GetMouseWheel() * time.deltaTime);
+	//MoveZoom(InputManager::GetMouseWheel());
+	//DrawOutlinedString(std::to_string(GetCameraObject()->zoom), 50, 90, 20, 3U);
 
 	return true;
 }

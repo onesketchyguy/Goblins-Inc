@@ -262,16 +262,14 @@ namespace gobl
     public:
         Vec2 pos{};
         float zoom = 0;
+        float angle = 0;
 
         SDL_Rect GetRect(SDL_Rect rect) 
         {
             rect.x -= static_cast<int>(pos.x);
             rect.y -= static_cast<int>(pos.y);
 
-            rect.x *= static_cast<int>(1 + zoom);
-            rect.y *= static_cast<int>(1 + zoom);
-            rect.w *= static_cast<int>(1 + zoom);
-            rect.h *= static_cast<int>(1 + zoom);
+            // FIXME: Add zoom and rotation
 
             return rect;
         }
@@ -414,7 +412,7 @@ namespace gobl
     private:
         GoblRenderer renderer{};
         Sprite* splash = nullptr;
-        Camera cam;
+        Camera* cam;
 
         Sprite* ngnLogo = nullptr;
 
@@ -428,6 +426,7 @@ namespace gobl
 
         void Launch()
         {
+            cam = new Camera();
             InputManager inputManager{};
             Init();
 
@@ -490,6 +489,7 @@ namespace gobl
             SDL_Quit();
             IMG_Quit();
             TTF_Quit();
+            delete cam;
         }
 
         Sprite* CreateSpriteObject(const char* path) { return new Sprite(&renderer, path); }
@@ -548,15 +548,10 @@ namespace gobl
     public:
         void SetTitle(const char* title) { renderer.SetWinTitle(title); }
 
-        Camera* GetCameraObject() { return &cam; }
-
-        Vec2 GetCamera() { return cam.pos; }
-        void MoveCamera(float mX, float mY)
-        {
-            cam.pos.x += mX;
-            cam.pos.y += mY;
-        }
-        void MoveZoom(float amnt) { cam.zoom += amnt; }
+        Camera* GetCameraObject() { return cam; }
+        Vec2 GetCamera() { return cam->pos; }
+        void MoveCamera(float mX, float mY) { cam->pos = cam->pos + Vec2{ mX, mY }; }
+        void MoveZoom(float amnt) { cam->zoom += amnt; }
 
         Uint32 GetScreenWidth() { return renderer.GetWindowWidth(); }
         Uint32 GetScreenHeight() { return renderer.GetWindowHeight(); }
@@ -565,14 +560,11 @@ namespace gobl
         GoblEngine& DrawString(std::string text, int x = 0, int y = 0, int size = 20, Uint8 r = 0xFF, Uint8 g = 0xFF, Uint8 b = 0xFF)
         {
             renderer.QueueString({ text, x, y, size, r, g, b });
-
             return *this;
         }
-
         GoblEngine& DrawOutlinedString(std::string text, int x = 0, int y = 0, int size = 20, Uint16 outlineSize = 1, Uint8 r = 0xFF, Uint8 g = 0xFF, Uint8 b = 0xFF)
         {
             renderer.QueueString({ text, x, y, size, r, g, b, outlineSize });
-
             return *this;
         }
     };

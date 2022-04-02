@@ -22,6 +22,9 @@ struct IntVec2
         y = _y;
     }
     IntVec2() = default;
+    
+    IntVec2 operator +(IntVec2& b) { return IntVec2{ x + b.x, y + b.y }; }
+    IntVec2 operator -(IntVec2& b) { return IntVec2{ x - b.x, y - b.y }; }
 };
 
 struct Vec2
@@ -34,6 +37,12 @@ struct Vec2
         y = _y;
     }
     Vec2() = default;
+
+    Vec2 operator +(Vec2 b) { return Vec2{ x + b.x, y + b.y }; }
+    Vec2 operator -(Vec2 b) { return Vec2{ x - b.x, y - b.y }; }
+
+    Vec2 operator +(IntVec2 b) { return Vec2{ x + static_cast<float>(b.x), y + static_cast<float>(b.y) }; }
+    Vec2 operator -(IntVec2 b) { return Vec2{ x - static_cast<float>(b.x), y - static_cast<float>(b.y) }; }
 };
 
 struct Color 
@@ -136,10 +145,10 @@ public:
 
 enum KeyState : Uint8
 {
-    KEY_NONE = 0,
-    KEY_PRESSED = 1,
-    KEY_HELD = 2,
-    KEY_RELEASED = 3,
+    KEY_NONE = 0U,
+    KEY_PRESSED = 1U,
+    KEY_HELD = 2U,
+    KEY_RELEASED = 3U,
 };
 
 namespace gobl

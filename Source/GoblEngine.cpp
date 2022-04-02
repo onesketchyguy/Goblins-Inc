@@ -97,6 +97,12 @@ namespace gobl
 
 }
 
+const Color Color::WHITE = { 0xFF, 0xFF, 0xFF, 0xFF };
+const Color Color::RED = { 0xFF, 0, 0, 0xFF };
+const Color Color::BLUE = { 0, 0, 0xFF, 0xFF };
+const Color Color::GREEN = { 0, 0xFF, 0, 0xFF };
+const Color Color::BLACK = { 0, 0, 0, 0xFF };
+
 // Renderer
 namespace gobl 
 {
@@ -251,6 +257,7 @@ namespace gobl
     {
         RenderSurfaces();
         DrawStrings();
+
         SDL_RenderPresent(sdlRenderer); // Show the renderer
     }
 
@@ -407,13 +414,15 @@ namespace gobl
         ro.rect = cam->GetRect(ro.rect);
     }
 
-    void Sprite::Draw()
+    Sprite* Sprite::Draw()
     {
         if (GetTextureExists() == false) CriticalError("ERROR: Cannot render a NULL texture.");
         else renderer->QueueTexture(renderObject);
+
+        return this;
     }
 
-    void Sprite::DrawRelative(Camera* cam) 
+    Sprite* Sprite::DrawRelative(Camera* cam)
     {
         if (GetTextureExists() == false) CriticalError("ERROR: Cannot render a NULL texture.");
         else
@@ -422,21 +431,27 @@ namespace gobl
             TranslateRect(cam, ro); // FIXME: This is a bandaid to a greater problem.
             renderer->QueueTexture(ro);
         }
+
+        return this;
     }
 
-    void Sprite::SetSpriteIndex(int x, int y) 
+    Sprite* Sprite::SetSpriteIndex(int x, int y)
     {
         renderObject.sprRect.x = renderObject.sprRect.w * x;
         renderObject.sprRect.y = renderObject.sprRect.h * y;
+
+        return this;
     }
     int Sprite::GetSpriteIndex() { return (renderObject.sprRect.x / renderObject.sprRect.w); }
 
-    void Sprite::SetDimensions(int w, int h)
+    Sprite* Sprite::SetDimensions(int w, int h)
     {
         renderObject.sprRect.w = w;
         renderObject.sprRect.h = h;
         renderObject.rect.w = w;
         renderObject.rect.h = h;
+
+        return this;
     }
 
     bool Sprite::Overlaps(int x, int y)
@@ -446,28 +461,36 @@ namespace gobl
         return (y >= r.y && y <= r.y + r.h) && (x >= r.x && x <= r.x + r.w);
     }
 
-    void Sprite::SetScale(int w, int h)
+    Sprite* Sprite::SetScale(int w, int h)
     {
         renderObject.rect.w = w;
         renderObject.rect.h = h;
+
+        return this;
     }
 
-    void Sprite::SetScale(float v)
+    Sprite* Sprite::SetScale(float v)
     {
         renderObject.rect.w = static_cast<int>(renderObject.sprRect.w * v);
         renderObject.rect.h = static_cast<int>(renderObject.sprRect.h * v);
+
+        return this;
     }
 
-    void Sprite::ModScale(int w, int h)
+    Sprite* Sprite::ModScale(int w, int h)
     {
         renderObject.rect.w += static_cast<int>(w);
         renderObject.rect.h += static_cast<int>(h);
+
+        return this;
     }
 
-    void Sprite::SetPosition(int x, int y)
+    Sprite* Sprite::SetPosition(int x, int y)
     {
         renderObject.rect.x = x;
         renderObject.rect.y = y;
+
+        return this;
     }
 
     std::string Sprite::GetRectDebugInfo()

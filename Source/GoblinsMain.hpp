@@ -32,16 +32,16 @@ public:
 	bool quittingApp = false;
 	bool quitToMenu = false;
 
-	int texturesLoaded = 0;
-	const int texturesToLoad = 5;
-	Uint32 tileTypeIndex = -1;
+	// FIXME: Load in the textures overtime instead of all at once
+	//int texturesLoaded = 0;
+	//const int texturesToLoad = 5;
 
 	void DrawButton(std::string buttonText, IntVec2 pos, bool& clicked);
 	void DrawValidate(std::string prompt, bool& yes, bool& no);
+	void DrawSelectedObject();
 	bool DrawTileOptions();
+	bool DrawObjectOptions();
 	void DrawWorld(bool blur = false);
-
-	bool highlighting = false;
 
 private:
 	void Init() override { SetTitle("Goblins inc."); }
@@ -50,11 +50,7 @@ private:
 
 	bool Update() override;
 
-	void Draw(gobl::GoblRenderer& renderer) override 
-	{
-		//renderer.SetPixel(Input().GetMouse().x, Input().GetMouse().y, 255, 255, 255);
-		renderer.ClearScreen();
-	}
+	void Draw(gobl::GoblRenderer& renderer) override;
 
 	bool Exit() override
 	{

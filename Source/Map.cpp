@@ -1,5 +1,8 @@
 #include "Map.hpp"
 #include "../libs/tinyxml2.h"
+#include <string>
+#include <iostream>
+#include <filesystem>
 
 namespace MAP
 {
@@ -7,7 +10,39 @@ namespace MAP
 	bool MAP_DEBUG_VERBOSE = false;
 
 	// XML stuff
-	void HandleAttributes(tinyxml2::XMLElement* currElement, MAP::TileData& tileData)
+	void HandleObjAttributes(tinyxml2::XMLElement* currElement, MAP::ObjectData& obj, std::string& texturePath)
+	{
+		obj.name = std::string(currElement->FindAttribute("name")->Value());
+
+		if (MAP_DEBUG_VERBOSE) std::cout << "ModObject: " << obj.name << std::endl;
+
+		// Then get mod elements
+		currElement = currElement->FirstChildElement();
+		std::string elementName = std::string(currElement->Name());
+
+		if (MAP_DEBUG_VERBOSE) std::cout << "\t" << elementName << " tag: " << std::endl;
+
+		// Read attributes
+		auto curAtt = currElement->FirstAttribute();
+		if (curAtt != nullptr)
+		{
+			while (curAtt != nullptr)
+			{
+				std::string currAttValue = std::string(curAtt->Value());
+
+				if (std::string(curAtt->Name()) == "name" && elementName == "sprite")
+				{
+					texturePath += currAttValue;
+
+					if (MAP_DEBUG_VERBOSE)
+						std::cout << "\t\tSprite location attribute: " << texturePath << std::endl;
+				}
+
+				curAtt = curAtt->Next();
+			}
+		}
+	}
+	void HandleMapAttributes(tinyxml2::XMLElement* currElement, MAP::TileData& tileData)
 	{
 		std::string element = std::string(currElement->Name());
 
@@ -124,7 +159,7 @@ namespace MAP
 							{
 								MAP_DEBUG_VERBOSE = std::string(curAtt->Value()) == "true";
 
-								std::cout << "\t\tDebug attribute: " << sprSize.y << std::endl;
+								std::cout << "\t\tDebug attribute: " << MAP_DEBUG_VERBOSE << std::endl;
 							}
 							else if (std::string(curAtt->Name()) != "name")
 							{
@@ -150,7 +185,7 @@ namespace MAP
 					// Read each element of that mod object
 					while (curModElement != nullptr)
 					{
-						HandleAttributes(curModElement, tileData);
+						HandleMapAttributes(curModElement, tileData);
 
 						// Move to next element
 						curModElement = curModElement->NextSiblingElement();
@@ -184,58 +219,33 @@ namespace MAP
 	}
 	void Map::LoadObjModData(const char* path)
 	{
-		std::string texturePath = TEXTURE_PATH;
-
-		ObjectData obj{};
-
 		tinyxml2::XMLDocument doc;
 		doc.LoadFile(path);
+		tinyxml2::XMLElement* currElement = doc.FirstChildElement();
 
-		// First get mod name
-		auto currElement = doc.FirstChildElement();
-		obj.name = std::string(currElement->FindAttribute("name")->Value());
-
-		if (MAP_DEBUG_VERBOSE) std::cout << "ModObject: " << obj.name << std::endl;
-
-		// Then get mod elements
-		currElement = currElement->FirstChildElement();
-		std::string elementName = std::string(currElement->Name());
-
-		if (MAP_DEBUG_VERBOSE) std::cout << "\t" << elementName << " tag: " << std::endl;
-
-		// Read attributes
-		auto curAtt = currElement->FirstAttribute();
-		if (curAtt != nullptr)
+		while (currElement != nullptr) 
 		{
-			while (curAtt != nullptr)
-			{
-				std::string currAttValue = std::string(curAtt->Value());
+			std::string texturePath = TEXTURE_PATH;
+			ObjectData obj{};
 
-				if (std::string(curAtt->Name()) == "name" && elementName == "sprite")
-				{
-					texturePath += currAttValue;
+			HandleObjAttributes(currElement, obj, texturePath);
 
-					if (MAP_DEBUG_VERBOSE)
-						std::cout << "\t\tSprite location attribute: " << texturePath << std::endl;
-				}
+			// Push the object to the stack
+			obj.sprIndex = objSprites.size();
+			objSprites.push_back(new gobl::Sprite());
+			objSprites[obj.sprIndex] = ge->CreateSpriteObject(texturePath.c_str());
+			objects.push_back(obj);
 
-				curAtt = curAtt->Next();
-			}
+			currElement = currElement->NextSiblingElement();
 		}
-
-		// Push the object to the stack
-		obj.sprIndex = objSprites.size();
-		objSprites.push_back(new gobl::Sprite());
-		objSprites[obj.sprIndex] = ge->CreateSpriteObject(texturePath.c_str());
-		objects.push_back(obj);
 	}
 
 	// Map stuff
 	Map::Map(gobl::GoblEngine* ge, int w, int h, const char* path) : ge(ge), width(w), height(h)
 	{
 		mapLength = width * height;
-		mapLayers = new int[mapLength];
-		objLayers = new int[mapLength];
+		mapLayers = new Uint32[mapLength];
+		objLayers = new Sint32[mapLength];
 
 		for (Uint32 i = 0; i < mapLength; i++) mapLayers[i] = 0; // FIXME: Load old map data
 		for (Uint32 i = 0; i < mapLength; i++) objLayers[i] = -1; // FIXME: Load old map data
@@ -252,7 +262,13 @@ namespace MAP
 	void Map::ResetTexture() 
 	{
 		envTex->SetDimensions(sprSize);
-		envTex->SetColorMod({ 255, 255, 255, 255 });
+		envTex->SetColorMod(Color::WHITE);
+
+		for (auto& spr : objSprites)
+		{
+			spr->SetDimensions(sprSize);
+			spr->SetColorMod(Color::WHITE);
+		}
 	}
 
 	void Map::DrawTile(Uint32 x, Uint32 y) 
@@ -262,7 +278,7 @@ namespace MAP
 		// FIXME: Implement lights
 
 		// Draw tiles
-		envTex->SetSpriteIndex(GetTypeSprite(mapLayers[i]));
+		envTex->SetSpriteIndex(GetType(mapLayers[i]).sprIndex);
 		envTex->SetPosition(envTex->GetScale().x * x, envTex->GetScale().y * y);
 		envTex->DrawRelative(ge->GetCameraObject());
 

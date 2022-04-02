@@ -55,6 +55,13 @@ struct Color
     }
 
     bool operator !=(const Color& b) const { return !(*this == b); }
+
+public: // Constant colors
+    const static Color WHITE;
+    const static Color RED;
+    const static Color BLUE;
+    const static Color GREEN;
+    const static Color BLACK;
 };
 
 inline Uint32 ColorFromRGB(Uint8 r, Uint8 g, Uint8 b, Uint8 a = 0xFF)
@@ -338,32 +345,32 @@ namespace gobl
     public:
         bool GetTextureExists() { return renderObject.textureId != -1; }
 
-        void Draw();
-        void DrawRelative(Camera* cam);
-        void DrawImmediate();
+        Sprite* Draw();
+        Sprite* DrawRelative(Camera* cam);
+        Sprite* DrawImmediate();
 
-        void SetAlpha(Uint8 alpha) { renderObject.color.a = alpha; }
-        void SetColorMod(Color c) { renderObject.color = { c.r, c.g, c.b, c.a }; }
+        Sprite* SetAlpha(Uint8 alpha) { renderObject.color.a = alpha; return this; }
+        Sprite* SetColorMod(Color c) { renderObject.color = { c.r, c.g, c.b, c.a }; return this; }
 
-        void SetDimensions(int w, int h);
-        void SetDimensions(IntVec2 d) { SetDimensions(d.x, d.y); }
+        Sprite* SetDimensions(int w, int h);
+        Sprite* SetDimensions(IntVec2 d) { return SetDimensions(d.x, d.y); }
         IntVec2 GetDimensions() { return { renderObject.sprRect.w, renderObject.sprRect.h }; }
 
-        void SetSpriteIndex(int x, int y = 0);
+        Sprite* SetSpriteIndex(int x, int y = 0);
         int GetSpriteIndex();
 
         bool Overlaps(int x, int y);
         bool Overlaps(IntVec2 pos) { return Overlaps(pos.x, pos.y); }
 
-        void SetScale(int w, int h);
-        void SetScale(float v);
-        void ModScale(int w, int h);
+        Sprite* SetScale(int w, int h);
+        Sprite* SetScale(float v);
+        Sprite* ModScale(int w, int h);
 
         IntVec2 GetScale() { return { renderObject.rect.w, renderObject.rect.h }; }
 
         // Mutators
-        void SetPosition(int x, int y);
-        void SetPosition(IntVec2 pos) { SetPosition(pos.x, pos.y); }
+        Sprite* SetPosition(int x, int y);
+        Sprite* SetPosition(IntVec2 pos) { return SetPosition(pos.x, pos.y); }
 
         // Accessors
         IntVec2 GetPosition() { return { renderObject.rect.x, renderObject.rect.y }; }

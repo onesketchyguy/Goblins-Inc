@@ -5,6 +5,8 @@ using namespace gobl;
 IntVec2 viewArea{};
 IntVec2 startMouse{};
 IntVec2 startCell{};
+bool highlighting = false;
+Uint32 tileTypeIndex = -1;
 
 // Input
 bool GetMouseCam(bool handEmpty)
@@ -35,13 +37,116 @@ void GoblinsMain::DrawButton(std::string buttonText, IntVec2 pos, bool& clicked)
 	DrawString(buttonText, button.GetPosition().x + (button.GetScale().x / 2) - 12 * buttonText.size(),
 		button.GetPosition().y + (button.GetScale().y / 2) - 20, 50, c.r, c.g, c.b);
 }
-
 void GoblinsMain::DrawValidate(std::string prompt, bool& yes, bool& no)
 {
 	DrawOutlinedString(prompt, 300, 300, 50, 4);
 
 	DrawButton("Confirm", { 200, 400 }, yes);
 	DrawButton("Cancel", { 500, 400 }, no);
+}
+
+void GoblinsMain::DrawSelectedObject()
+{
+	if (tileTypeIndex >= 0 && tileTypeIndex < map.GetTileTypeCount() + map.GetObjectCount())
+	{
+		int x = 800;
+
+		map.GetTexture()->SetSpriteIndex(0);
+		map.GetTexture()->SetColorMod(Color{ 0, 0, 0, 150 })->SetPosition(x - 12, 24)->SetScale(2.1f)->Draw();
+
+		if (tileTypeIndex < map.GetTileTypeCount()) 
+		{
+			DrawString(map.GetType(tileTypeIndex).name, x, 5);
+			if (debugging)
+			{
+				DrawString(map.GetType(tileTypeIndex).buildLayer, x + 50, 25);
+				DrawString(map.GetType(tileTypeIndex).layer, x + 50, 45);
+			}
+
+			map.GetTexture()->SetSpriteIndex(map.GetType(tileTypeIndex).sprIndex);
+
+			if (map.GetTexture()->Overlaps(InputManager::GetMouse()))
+			{
+				map.GetTexture()->SetScale(2.05f);
+
+				if (InputManager::GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT)) tileTypeIndex = -1;
+			}
+
+			map.GetTexture()->SetColorMod(Color::WHITE)->SetPosition(x - 10, 25)->SetScale(2.0f)->Draw();
+		}
+		else
+		{
+			// FIXME: Describe current selected item
+			//DrawString(map.GetTypeName(tileTypeIndex), x, 5);
+			//if (debugging)
+			//{
+			//	DrawString(map.GetTypeBuildable(tileTypeIndex), x + 50, 25);
+			//	DrawString(map.GetTypeLayer(tileTypeIndex), x + 50, 45);
+			//}
+
+			Uint32 texIndex = tileTypeIndex - map.GetTileTypeCount();
+			map.GetObjTexture(texIndex)->SetPosition(x - 10, 25)->SetScale(2.0f);
+
+			if (map.GetObjTexture(texIndex)->Overlaps(InputManager::GetMouse()))
+			{
+				if (InputManager::GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT)) tileTypeIndex = -1;
+			}
+
+			map.GetObjTexture(texIndex)->SetColorMod(Color::WHITE)->Draw();
+		}
+	}
+}
+
+bool GoblinsMain::DrawObjectOptions() 
+{
+	Uint32 objectLength = map.GetObjectCount();
+	Uint32 highLighting = -1;
+
+	int x = 850;
+	int y = 100;
+
+	for (Uint32 i = 0; i < objectLength; i++)
+	{
+		// Allow highlighting of each item
+		map.GetObjTexture(i)->SetPosition(x, y + (50 * i))->SetScale(1.5f);
+
+		if (map.GetObjTexture(i)->Overlaps(InputManager::GetMouse())) 
+		{
+			highLighting = i;
+
+			if (InputManager::GetMouseButtonUp(MB_LEFT)) tileTypeIndex = map.GetTileTypeCount() + i;
+		}
+	}
+
+	for (Uint32 i = 0; i < objectLength; i++)
+	{
+		Uint8 mouseOver = highLighting == -1 ? 0 : (highLighting == i ? 1 : 2);
+
+		// Draw each item
+		auto tex = map.GetObjTexture(i);
+		tex->SetPosition(x, y + (50 * i));
+
+		switch (mouseOver)
+		{
+		case 0:
+			tex->SetScale(1.3f)->SetColorMod(Color{ 200, 200, 200, 200 });
+			break;
+		case 1:
+			tex->SetScale(1.5f)->SetColorMod(Color{ 255, 255, 255, 255 });
+			break;
+		case 2:
+			tex->SetScale(1.25f)->SetColorMod(Color{ 150, 150, 150, 150 });
+			break;
+		default:
+			break;
+		}
+
+		tex->Draw();
+	}
+
+	map.ResetTexture();
+
+	return highLighting != -1;
 }
 
 bool GoblinsMain::DrawTileOptions()
@@ -67,7 +172,7 @@ bool GoblinsMain::DrawTileOptions()
 
 	for (Uint32 i = 0; i < map.GetTileTypeCount(); i++)
 	{
-		int s = map.GetTypeSprite(i);
+		int s = map.GetType(i).sprIndex;
 		mapTexture->SetSpriteIndex(s);
 
 		if (highLighting != -1)
@@ -75,63 +180,20 @@ bool GoblinsMain::DrawTileOptions()
 			if (highLighting == i)
 			{
 				// Mouse over this
-				mapTexture->SetPosition(x, y - 5 + (50 * i));
-				mapTexture->SetScale(1.6f);
-				mapTexture->SetColorMod({ 200, 200, 200, 255 });
+				mapTexture->SetColorMod({ 200, 200, 200, 255 })->SetPosition(x, y - 5 + (50 * i))->SetScale(1.6f);
 
-				DrawString(map.GetTypeName(i), x + 80, y + 10 + (50 * i));
+				DrawString(map.GetType(i).name, x + 80, y + 10 + (50 * i));
 
 				if (debugging)
 				{
-					DrawString(map.GetTypeBuildable(i), x + 80, y + 25 + (50 * i));
-					DrawString(map.GetTypeLayer(i), x + 80, y + 50 + (50 * i));
+					DrawString(map.GetType(i).buildLayer, x + 80, y + 25 + (50 * i));
+					DrawString(map.GetType(i).layer, x + 80, y + 50 + (50 * i));
 				}
 			}
-			else
-			{
-				mapTexture->SetColorMod({ 100, 100, 100, 255 });
-				mapTexture->SetPosition(x + 5, y + (50 * i));
-				mapTexture->SetScale(1.2f);
-			}
+			else mapTexture->SetColorMod({ 100, 100, 100, 255 })->SetPosition(x + 5, y + (50 * i))->SetScale(1.2f);
 		}
-		else
-		{
-			mapTexture->SetColorMod({ 150, 150, 150, 150 });
-			mapTexture->SetPosition(x, y + (50 * i));
-			mapTexture->SetScale(1.4f);
-		}
+		else mapTexture->SetColorMod({ 150, 150, 150, 150 })->SetPosition(x, y + (50 * i))->SetScale(1.4f);
 
-
-		mapTexture->Draw();
-	}
-
-	if (tileTypeIndex >= 0 && tileTypeIndex < map.GetTileTypeCount())
-	{
-		DrawString(map.GetTypeName(tileTypeIndex), x, 5);
-
-		if (debugging)
-		{
-			DrawString(map.GetTypeBuildable(tileTypeIndex), x + 50, 25);
-			DrawString(map.GetTypeLayer(tileTypeIndex), x + 50, 45);
-		}
-
-		mapTexture->SetSpriteIndex(map.GetTypeSprite(tileTypeIndex));
-
-		mapTexture->SetPosition(x - 12, 24);
-		mapTexture->SetScale(2.1f);
-		mapTexture->SetColorMod({ 0, 0, 0, 255 });
-		mapTexture->Draw();
-
-		if (mapTexture->Overlaps(InputManager::GetMouse()))
-		{
-			mapTexture->SetScale(2.05f);
-
-			if (InputManager::GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT)) tileTypeIndex = -1;
-		}
-
-		mapTexture->SetPosition(x - 10, 25);
-		mapTexture->SetScale(2.0f);
-		mapTexture->SetColorMod({ 255, 255, 255, 255 });
 		mapTexture->Draw();
 	}
 
@@ -142,9 +204,11 @@ bool GoblinsMain::DrawTileOptions()
 			DrawOutlinedString(std::to_string(highLighting), 20, 40, 20, 3U, 255U, 255U, 0U);
 	}
 
+	DrawSelectedObject();
+
 	map.ResetTexture();
 
-	return highLighting != -1;
+	return highLighting != -1 || DrawObjectOptions();
 }
 
 // Basic function
@@ -153,12 +217,13 @@ bool GoblinsMain::Start()
 	map = MAP::Map(this, 64, 64, "Mods/");
 
 	CreateSpriteObject(highlightSprite, "Sprites/highlightTile.png");
-	highlightSprite.SetColorMod({ 0, 0, 0 });
+	highlightSprite.SetColorMod(Color::BLACK);
 	CreateSpriteObject(sprite, "Sprites/worker.png");
 	CreateSpriteObject(title, "Sprites/Title_HighRes.png");
 	title.SetScale(0.9f);
 
-	GetEngineLogo()->SetPosition(933, 637);
+	GetEngineLogo()->SetPosition(GetScreenWidth() - GetEngineLogo()->GetDimensions().x, 
+		GetScreenHeight() - GetEngineLogo()->GetDimensions().y);
 
 	CreateSpriteObject(button, "Sprites/slider.png");
 	button.SetDimensions(20, 12);
@@ -288,39 +353,59 @@ bool GoblinsMain::Update()
 				short lenX = 0;
 				short lenY = 0;
 
-				if (map.GetTypeMultiPlace(tileTypeIndex) == true)
+				if (tileTypeIndex < map.GetTileTypeCount()) 
 				{
-					lenX = finalCell.x - startCell.x;
-					lenY = finalCell.y - startCell.y;
-
-					if (map.GetTypeLinear(tileTypeIndex) == true)
+					// Place tiles
+					if (map.GetType(tileTypeIndex).canMultiPlace == true)
 					{
-						if (abs(lenX) > abs(lenY)) lenY = 0; else lenX = 0;
+						lenX = finalCell.x - startCell.x;
+						lenY = finalCell.y - startCell.y;
+
+						if (map.GetType(tileTypeIndex).linear == true)
+						{
+							if (abs(lenX) > abs(lenY)) lenY = 0; else lenX = 0;
+						}
+					}
+
+					for (int y = 0; y < abs(lenY) + 1; y++)
+					{
+						short dirY = lenY > 0 ? y : -y;
+
+						for (int x = 0; x < abs(lenX) + 1; x++)
+						{
+							short dirX = lenX > 0 ? x : -x;
+
+							int id = map.GetTile(finalCell.x - dirX, finalCell.y - dirY);
+							Uint32 tileLayer = map.GetTileLayer(id);
+
+							if (map.GetType(tileLayer).buildLayer == map.GetType(tileTypeIndex).layer)
+							{
+								if (InputManager::GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT) == false)
+									highlightSprite.SetColorMod(validPlacementColor);
+								else map.ChangeTile(id, tileTypeIndex);
+							}
+							else highlightSprite.SetColorMod(invalidPlacementColor);
+
+							highlightSprite.SetPosition(map.GetTilePos(id));
+							highlightSprite.DrawRelative(GetCameraObject());
+						}
 					}
 				}
-
-				for (int y = 0; y < abs(lenY) + 1; y++)
+				else 
 				{
-					short dirY = lenY > 0 ? y : -y;
+					// Place items
+					
+					int id = map.GetTile(finalCell.x, finalCell.y);
+					highlightSprite.SetPosition(map.GetTilePos(id));
 
-					for (int x = 0; x < abs(lenX) + 1; x++)
+					if (InputManager::GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT) == false)
 					{
-						short dirX = lenX > 0 ? x : -x;
-
-						int id = map.GetTile(finalCell.x - dirX, finalCell.y - dirY);
-						Uint32 tileLayer = map.GetTileLayer(id);
-
-						if (map.GetTypeBuildable(tileLayer) == map.GetTypeLayer(tileTypeIndex))
-						{
-							if (InputManager::GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT) == false)
-								highlightSprite.SetColorMod(validPlacementColor);
-							else map.ChangeTile(id, tileTypeIndex);
-						}
-						else highlightSprite.SetColorMod(invalidPlacementColor);
-
-						highlightSprite.SetPosition(map.GetTilePos(id));
-						highlightSprite.DrawRelative(GetCameraObject());
+						highlightSprite.SetColorMod(validPlacementColor);
 					}
+					else map.SetObject(id, tileTypeIndex - map.GetTileTypeCount());
+
+					map.GetObjTexture(tileTypeIndex - map.GetTileTypeCount())->SetPosition(map.GetTilePos(id))->DrawRelative(GetCameraObject());
+					highlightSprite.DrawRelative(GetCameraObject());
 				}
 			}
 		}
@@ -352,4 +437,9 @@ bool GoblinsMain::Update()
 	//MoveZoom(Input().GetMouseWheel() * time.deltaTime);
 
 	return true;
+}
+
+void GoblinsMain::Draw(gobl::GoblRenderer& renderer)
+{
+	// FIXME: This is non-functional
 }

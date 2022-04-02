@@ -44,8 +44,8 @@ namespace MAP
 		std::vector<ObjectData> objects{};
 		std::vector<gobl::Sprite*> objSprites{};
 
-		int* mapLayers;
-		int* objLayers;
+		Uint32* mapLayers;
+		Sint32* objLayers;
 		Uint64 sprLength = 0;
 
 		gobl::GoblEngine* ge = nullptr;
@@ -76,13 +76,12 @@ namespace MAP
 		const IntVec2 GetMapSize() { return { width, height }; }
 
 		Uint32 GetTileTypeCount() { return tiles.size(); }
+		Uint32 GetObjectCount() { return objSprites.size(); }
+		gobl::Sprite* GetObjTexture(const Uint32 index) { return objSprites[index]; }
 
-		std::string GetTypeName(const Uint32 layerId) { return tiles[layerId].name; }
-		std::string GetTypeLayer(const Uint32 layerId) { return tiles[layerId].layer; }
-		std::string GetTypeBuildable(const Uint32 layerId) { return tiles[layerId].buildLayer; }
-		bool GetTypeMultiPlace(const Uint32 layerId) { return tiles[layerId].canMultiPlace; }
-		bool GetTypeLinear(const Uint32 layerId) { return tiles[layerId].linear; }
-		Uint32 GetTypeSprite(const Uint32 layerId) { return tiles[layerId].sprIndex; }
+		void SetObject(Uint32 id, Sint32 index) { objLayers[id] = index; };
+
+		MAP::TileData GetType(const Uint32 layerID) { return tiles[layerID]; }
 
 		void ChangeTile(int id, Uint32 index) { mapLayers[id] = index; }
 		Uint32 GetTileLayer(int id) { return mapLayers[id]; }

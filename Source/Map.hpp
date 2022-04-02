@@ -2,15 +2,26 @@
 #ifndef MAP_H
 #define MAP_H
 
-#include <iostream>
 #include "GoblEngine.hpp"
+#include <iostream>
+#include <unordered_map>
 
 namespace MAP 
 {
+	const char SPRITE_ATT[9] = "sprIndex";
+	const char PRICE_ATT[6] = "price";
+	const char MULTI_PLACE_ATT[14] = "multi";
+	const char LINEAR_ATT[7] = "linear";
+
 	extern bool MAP_DEBUG_VERBOSE;
 
 	struct TileData 
 	{
+	private:
+		std::unordered_map<std::string, int> intAtts{};
+		std::unordered_map<std::string, bool> boolAtts{};
+
+	public:
 		std::string name = "";
 
 		// What can be placed on this
@@ -19,10 +30,28 @@ namespace MAP
 		// What layer this is on
 		std::string layer = "";
 
-		bool canMultiPlace = false;
-		bool linear = false;
+		int GetIntAttribute(std::string val)
+		{
+			if (intAtts.find(val) == intAtts.end())
+			{
+				if (MAP_DEBUG_VERBOSE) std::cout << "ERROR: int attribute; " << val << " not found." << std::endl;
+				return 0;
+			}
+			else return intAtts[val];
+		}
 
-		int sprIndex = 0;
+		bool GetBoolAttribute(std::string val)
+		{
+			if (boolAtts.find(val) == boolAtts.end())
+			{
+				if (MAP_DEBUG_VERBOSE) std::cout << "ERROR: bool attribute; " << val << " not found." << std::endl;
+				return false;
+			}
+			else return boolAtts[val];
+		}
+
+		void AddIntAttribute(std::string name, int val) { intAtts.emplace(name, val); }
+		void AddBoolAttribute(std::string name, bool val) { boolAtts.emplace(name, val); }
 	};
 
 	class Map
@@ -38,8 +67,8 @@ namespace MAP
 		std::vector<TileData> objects{};
 		std::vector<gobl::Sprite*> objSprites{};
 
-		Uint32* mapLayers;
-		Sint32* objLayers;
+		Uint32* mapLayers = nullptr;
+		Sint32* objLayers = nullptr;
 		Uint64 sprLength = 0;
 
 		gobl::GoblEngine* ge = nullptr;
@@ -71,17 +100,22 @@ namespace MAP
 
 		Uint32 GetTileTypeCount() { return tiles.size(); }
 		Uint32 GetObjectCount() { return objSprites.size(); }
-		gobl::Sprite* GetObjTexture(const Uint32 index) { return objSprites[index]; }
 
-		MAP::TileData GetObjectType(const Uint32 layerID) { return objects[layerID]; }
+		MAP::TileData GetType(const Uint32 layerID) 
+		{
+			if (layerID < tiles.size())
+				return tiles[layerID];
+			else return objects[layerID - tiles.size()];
+
+			return tiles[0];
+		}
+
 		void SetObject(Uint32 id, Sint32 index) { objLayers[id] = index; };
+		void SetTile(int id, Uint32 index) { mapLayers[id] = index; }
 
-		MAP::TileData GetType(const Uint32 layerID) { return tiles[layerID]; }
-
-		void ChangeTile(int id, Uint32 index) { mapLayers[id] = index; }
 		Uint32 GetTileLayer(int id) { return mapLayers[id]; }
-
-		gobl::Sprite* GetTexture() { return envTex; }
+		gobl::Sprite* GetTileTexture() { return envTex; }
+		gobl::Sprite* GetTexture(const Uint32 index) { return objSprites[index]; }
 
 		bool Overlaps(int id, int x, int y);
 		int GetTile(int x, int y);

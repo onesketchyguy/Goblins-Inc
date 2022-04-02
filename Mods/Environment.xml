@@ -1,25 +1,25 @@
-<EnvironmentSprite name="Environment.png" w="32" h="32" debug="false"></EnvironmentSprite>
+<EnvironmentSprite name="Environment.png" w="32" h="32"></EnvironmentSprite>
 
 <EnvironmentObject name="Grass">
-	<sprite i="0"></sprite>
+	<sprite sprIndex="0"></sprite>
 	<buildable layer="grass"></buildable>
 </EnvironmentObject>
 <EnvironmentObject name="Concrete">
-	<sprite i="1"></sprite>
+	<sprite sprIndex="1"></sprite>
 	<buildable layer="foundation"></buildable>
 	<placable layer="grass" multi="true"></placable>
 </EnvironmentObject>
 <EnvironmentObject name="Tile">
-	<sprite i="2"></sprite>
+	<sprite sprIndex="2"></sprite>
 	<buildable layer="ground"></buildable>
 	<placable layer="foundation" multi="true"></placable>
 </EnvironmentObject>
 <EnvironmentObject name="Wall">
-	<sprite i="3"></sprite>
+	<sprite sprIndex="3"></sprite>
 	<buildable layer="wall"></buildable>
 	<placable layer="ground" multi="true" linear="true"></placable>
 </EnvironmentObject>
 <EnvironmentObject name="Door">
-	<sprite i="4"></sprite>
+	<sprite sprIndex="4"></sprite>
 	<placable layer="wall"></placable>
 </EnvironmentObject>

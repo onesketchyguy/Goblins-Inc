@@ -3,6 +3,7 @@
 #include <string>
 #include <iostream>
 #include <filesystem>
+#include <functional>
 
 namespace MAP
 {
@@ -21,22 +22,9 @@ namespace MAP
 			while (curAtt != nullptr)
 			{
 				std::string currAttValue = std::string(curAtt->Value());
+				std::string currAttName = std::string(curAtt->Name());
 
-				if (std::string(curAtt->Name()) == "i" && elementName == "sprite")
-				{
-					tileData.sprIndex = std::stoi(curAtt->Value());
-
-					if (MAP_DEBUG_VERBOSE)
-						std::cout << "\t\tIndex attribute: " << tileData.sprIndex << std::endl;
-				}
-				else if (std::string(curAtt->Name()) == "name" && elementName == "sprite")
-				{
-					texturePath += currAttValue;
-
-					if (MAP_DEBUG_VERBOSE)
-						std::cout << "\t\tSprite location attribute: " << texturePath << std::endl;
-				}
-				else if (std::string(curAtt->Name()) == "layer")
+				if (currAttName == "layer")
 				{
 					if (elementName == "buildable")
 					{
@@ -55,27 +43,57 @@ namespace MAP
 					else
 					{
 						if (MAP_DEBUG_VERBOSE)
-							std::cout << "\t\tLayer Attribute found on unknown tag: " << curAtt->Value() << std::endl;
+							std::cout << "\t\tLayer attribute found on unknown tag: " << curAtt->Value() << std::endl;
 					}
 				}
-				else if (std::string(curAtt->Name()) == "multi" && elementName == "placable")
+				else if (elementName == "placable" || elementName == "rotate")
 				{
-					if (currAttValue == "true") tileData.canMultiPlace = true;
+					if (currAttValue != "true" && currAttValue != "false")
+					{
+						std::cout << "\t\tAttribute " << currAttName << " unhandled! " << curAtt->Value() << std::endl;
+					}
+					else 
+					{
+						bool value = (currAttValue == "true");
+						tileData.AddBoolAttribute(currAttName, value);
 
-					if (MAP_DEBUG_VERBOSE)
-						std::cout << "\t\tMulti-place Attribute: " << curAtt->Value() << std::endl;
+						if (MAP_DEBUG_VERBOSE)
+							std::cout << "\t\tAttribute " << currAttName << ": " << curAtt->Value() << std::endl;
+					}
 				}
-				else if (std::string(curAtt->Name()) == "linear" && elementName == "placable")
+				else if (currAttName == "debug")
 				{
-					if (currAttValue == "true") tileData.linear = true;
+					MAP_DEBUG_VERBOSE = currAttValue == "true";
 
-					if (MAP_DEBUG_VERBOSE)
-						std::cout << "\t\tLinear-place Attribute: " << curAtt->Value() << std::endl;
+					std::cout << "\t\tDebug attribute: " << MAP_DEBUG_VERBOSE << std::endl;
 				}
 				else
 				{
-					if (MAP_DEBUG_VERBOSE)
-						std::cout << "\t\tUnknown Attribute: " << curAtt->Name() << ", " << curAtt->Value() << std::endl;
+					// Try to add this attribute to the int list if possible
+					try
+					{
+						tileData.AddIntAttribute(currAttName, std::stoi(curAtt->Value()));
+
+						if (MAP_DEBUG_VERBOSE)
+							std::cout << "\t\tAttribute " << currAttName << ": " << tileData.GetIntAttribute(currAttName) << std::endl;
+					}
+					catch (std::exception&) // Ignore the exception error since it's expected for some attributes
+					{
+						// Handle the sprite location attribute
+						if (elementName == "sprite")
+						{
+							texturePath += currAttValue;
+
+							if (MAP_DEBUG_VERBOSE)
+								std::cout << "\t\tLocation attribute: " << texturePath << std::endl;
+						}
+						else 
+						{
+							// This attribute has no handler
+							if (MAP_DEBUG_VERBOSE)
+								std::cout << "\t\tUnknown and unhandled attribute: " << curAtt->Name() << ", " << curAtt->Value() << std::endl;
+						}
+					}
 				}
 
 				curAtt = curAtt->Next();
@@ -83,13 +101,14 @@ namespace MAP
 		}
 		else
 		{
-			std::cout << "ERROR: No " << elementName << " attributes found!" << std::endl;
+			std::cout << "\t\tWARNING: No " << elementName << " attributes found!" << std::endl;
 		}
 	}
 	void HandleObjElements(tinyxml2::XMLElement* currElement, MAP::TileData& tileData, std::string& texturePath)
 	{
 		tileData.name = std::string(currElement->FindAttribute("name")->Value());
 
+		HandleAttributes(currElement, tileData, texturePath);
 		if (MAP_DEBUG_VERBOSE) std::cout << "ModObject: " << tileData.name << std::endl;
 
 		// Then get mod elements
@@ -225,9 +244,9 @@ namespace MAP
 			HandleObjElements(currElement, obj, texturePath);
 
 			// Push the object to the stack
-			obj.sprIndex = objSprites.size();
+			obj.AddIntAttribute(SPRITE_ATT, static_cast<int>(objSprites.size()));
 			objSprites.push_back(new gobl::Sprite());
-			objSprites[obj.sprIndex] = ge->CreateSpriteObject(texturePath.c_str());
+			objSprites[obj.GetIntAttribute(SPRITE_ATT)] = ge->CreateSpriteObject(texturePath.c_str());
 			objects.push_back(obj);
 
 			currElement = currElement->NextSiblingElement();
@@ -272,14 +291,14 @@ namespace MAP
 		// FIXME: Implement lights
 
 		// Draw tiles
-		envTex->SetSpriteIndex(GetType(mapLayers[i]).sprIndex);
+		envTex->SetSpriteIndex(GetType(mapLayers[i]).GetIntAttribute(SPRITE_ATT));
 		envTex->SetPosition(envTex->GetScale().x * x, envTex->GetScale().y * y);
 		envTex->DrawRelative(ge->GetCameraObject());
 
 		// Draw items
 		if (objLayers[i] >= 0)
 		{
-			Uint32 sprIndex = objects[objLayers[i]].sprIndex;
+			Uint32 sprIndex = objects[objLayers[i]].GetIntAttribute(SPRITE_ATT);
 			objSprites[sprIndex]->SetPosition(envTex->GetScale().x * x, envTex->GetScale().y * y);
 			objSprites[sprIndex]->DrawRelative(ge->GetCameraObject());
 		}

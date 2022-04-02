@@ -58,8 +58,8 @@ void GoblinsMain::DrawSelectedObject()
 	{
 		int x = 800;
 
-		map.GetTexture()->SetSpriteIndex(0);
-		map.GetTexture()->SetColorMod(Color{ 0, 0, 0, 150 })->SetPosition(x - 12, 24)->SetScale(2.1f)->Draw();
+		map.GetTileTexture()->SetSpriteIndex(0);
+		map.GetTileTexture()->SetColorMod(Color{ 0, 0, 0, 150 })->SetPosition(x - 12, 24)->SetScale(2.1f)->Draw();
 
 		if (tileTypeIndex < map.GetTileTypeCount()) 
 		{
@@ -70,36 +70,37 @@ void GoblinsMain::DrawSelectedObject()
 				DrawString(map.GetType(tileTypeIndex).layer, x + 50, 45);
 			}
 
-			map.GetTexture()->SetSpriteIndex(map.GetType(tileTypeIndex).sprIndex);
+			map.GetTileTexture()->SetSpriteIndex(map.GetType(tileTypeIndex).GetIntAttribute(MAP::SPRITE_ATT));
 
-			if (map.GetTexture()->Overlaps(InputManager::GetMouse()))
+			if (map.GetTileTexture()->Overlaps(InputManager::GetMouse()))
 			{
-				map.GetTexture()->SetScale(2.05f);
+				map.GetTileTexture()->SetScale(2.05f);
 
 				if (InputManager::GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT)) tileTypeIndex = -1;
 			}
 
-			map.GetTexture()->SetColorMod(Color::WHITE)->SetPosition(x - 10, 25)->SetScale(2.0f)->Draw();
+			map.GetTileTexture()->SetColorMod(Color::WHITE)->SetPosition(x - 10, 25)->SetScale(2.0f)->Draw();
 		}
 		else
 		{
-			// FIXME: Describe current selected item
-			//DrawString(map.GetTypeName(tileTypeIndex), x, 5);
-			//if (debugging)
-			//{
-			//	DrawString(map.GetTypeBuildable(tileTypeIndex), x + 50, 25);
-			//	DrawString(map.GetTypeLayer(tileTypeIndex), x + 50, 45);
-			//}
+			DrawString(map.GetType(tileTypeIndex).name, x, 5);
+			DrawString("$" + std::to_string(map.GetType(tileTypeIndex).GetIntAttribute(MAP::PRICE_ATT)),
+				x - 50, 20);
+			if (debugging)
+			{
+				DrawString(map.GetType(tileTypeIndex).buildLayer, x + 50, 25);
+				DrawString(map.GetType(tileTypeIndex).layer, x + 50, 45);
+			}
 
 			Uint32 texIndex = tileTypeIndex - map.GetTileTypeCount();
-			map.GetObjTexture(texIndex)->SetPosition(x - 10, 25)->SetScale(2.0f);
+			map.GetTexture(texIndex)->SetPosition(x - 10, 25)->SetScale(2.0f);
 
-			if (map.GetObjTexture(texIndex)->Overlaps(InputManager::GetMouse()))
+			if (map.GetTexture(texIndex)->Overlaps(InputManager::GetMouse()))
 			{
 				if (InputManager::GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT)) tileTypeIndex = -1;
 			}
 
-			map.GetObjTexture(texIndex)->SetColorMod(Color::WHITE)->Draw();
+			map.GetTexture(texIndex)->SetColorMod(Color::WHITE)->Draw();
 		}
 	}
 }
@@ -115,9 +116,9 @@ bool GoblinsMain::DrawObjectOptions()
 	for (Uint32 i = 0; i < objectLength; i++)
 	{
 		// Allow highlighting of each item
-		map.GetObjTexture(i)->SetPosition(x, y + (50 * i))->SetScale(1.5f);
+		map.GetTexture(i)->SetPosition(x, y + (50 * i))->SetScale(1.5f);
 
-		if (map.GetObjTexture(i)->Overlaps(InputManager::GetMouse())) 
+		if (map.GetTexture(i)->Overlaps(InputManager::GetMouse())) 
 		{
 			highLighting = i;
 
@@ -130,7 +131,7 @@ bool GoblinsMain::DrawObjectOptions()
 		Uint8 mouseOver = highLighting == -1 ? 0 : (highLighting == i ? 1 : 2);
 
 		// Draw each item
-		auto tex = map.GetObjTexture(i);
+		auto tex = map.GetTexture(i);
 		tex->SetPosition(x, y + (50 * i));
 
 		switch (mouseOver)
@@ -158,7 +159,7 @@ bool GoblinsMain::DrawObjectOptions()
 
 bool GoblinsMain::DrawTileOptions()
 {
-	auto mapTexture = map.GetTexture();
+	auto mapTexture = map.GetTileTexture();
 	Uint32 highLighting = -1;
 
 	int x = 800;
@@ -179,7 +180,7 @@ bool GoblinsMain::DrawTileOptions()
 
 	for (Uint32 i = 0; i < map.GetTileTypeCount(); i++)
 	{
-		int s = map.GetType(i).sprIndex;
+		int s = map.GetType(i).GetIntAttribute(MAP::SPRITE_ATT);
 		mapTexture->SetSpriteIndex(s);
 
 		if (highLighting != -1)
@@ -248,12 +249,12 @@ void GoblinsMain::HandlePlaceItems()
 		if (tileTypeIndex < map.GetTileTypeCount())
 		{
 			// Place tiles
-			if (map.GetType(tileTypeIndex).canMultiPlace == true)
+			if (map.GetType(tileTypeIndex).GetBoolAttribute(MAP::MULTI_PLACE_ATT) == true)
 			{
 				lenX = finalCell.x - startCell.x;
 				lenY = finalCell.y - startCell.y;
 
-				if (map.GetType(tileTypeIndex).linear == true)
+				if (map.GetType(tileTypeIndex).GetBoolAttribute(MAP::LINEAR_ATT) == true)
 				{
 					if (abs(lenX) > abs(lenY)) lenY = 0; else lenX = 0;
 				}
@@ -274,7 +275,7 @@ void GoblinsMain::HandlePlaceItems()
 					{
 						if (InputManager::GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT) == false)
 							highlightSprite.SetColorMod(validPlacementColor);
-						else map.ChangeTile(id, tileTypeIndex);
+						else map.SetTile(id, tileTypeIndex);
 					}
 					else highlightSprite.SetColorMod(invalidPlacementColor);
 
@@ -292,24 +293,24 @@ void GoblinsMain::HandlePlaceItems()
 
 			Uint32 index = tileTypeIndex - map.GetTileTypeCount();
 
-			if (CanPlace(map.GetType(map.GetTileLayer(id)), map.GetObjectType(index)))
+			if (CanPlace(map.GetType(map.GetTileLayer(id)), map.GetType(tileTypeIndex)))
 			{
 				if (InputManager::GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT) == false)
 				{
 					highlightSprite.SetColorMod(validPlacementColor);
-					map.GetObjTexture(index)->SetColorMod(Color::WHITE);
+					map.GetTexture(index)->SetColorMod(Color::WHITE);
 				}
 				else map.SetObject(id, index);
 			}
 			else
 			{
 				highlightSprite.SetColorMod(invalidPlacementColor);
-				map.GetObjTexture(index)->SetColorMod(Color::RED);
+				map.GetTexture(index)->SetColorMod(Color::RED);
 			}
 
 
 
-			map.GetObjTexture(index)->SetPosition(map.GetTilePos(id))->DrawRelative(GetCameraObject());
+			map.GetTexture(index)->SetPosition(map.GetTilePos(id))->DrawRelative(GetCameraObject());
 			highlightSprite.DrawRelative(GetCameraObject());
 		}
 	}

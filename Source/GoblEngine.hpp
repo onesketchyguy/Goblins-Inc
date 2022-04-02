@@ -356,7 +356,6 @@ namespace gobl
 
         Sprite* Draw();
         Sprite* DrawRelative(Camera* cam);
-        Sprite* DrawImmediate();
 
         Sprite* SetAlpha(Uint8 alpha) { renderObject.color.a = alpha; return this; }
         Sprite* SetColorMod(Color c) { renderObject.color = { c.r, c.g, c.b, c.a }; return this; }

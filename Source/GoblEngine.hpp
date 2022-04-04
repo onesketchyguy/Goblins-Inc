@@ -25,6 +25,14 @@ struct IntVec2
     
     IntVec2 operator +(IntVec2& b) { return IntVec2{ x + b.x, y + b.y }; }
     IntVec2 operator -(IntVec2& b) { return IntVec2{ x - b.x, y - b.y }; }
+
+    bool operator ==(IntVec2 b)
+    {
+        bool xEq = abs(x) - abs(b.x) <= 0.01f;
+        bool yEq = abs(y) - abs(b.y) <= 0.01f;
+
+        return (x == b.x && y == b.y);
+    }
 };
 
 struct Vec2
@@ -43,6 +51,16 @@ struct Vec2
 
     Vec2 operator +(IntVec2 b) { return Vec2{ x + static_cast<float>(b.x), y + static_cast<float>(b.y) }; }
     Vec2 operator -(IntVec2 b) { return Vec2{ x - static_cast<float>(b.x), y - static_cast<float>(b.y) }; }
+
+    bool operator ==(Vec2 b) 
+    { 
+        bool xEq = abs(x) - abs(b.x) <= 0.001f;
+        bool yEq = abs(y) - abs(b.y) <= 0.001f;
+
+        return xEq && yEq;
+    }
+
+    static float GetDistance(Vec2 a, Vec2 b) { return abs(abs(a.x) - abs(b.x)) + (abs(a.y) - abs(b.y)); }
 };
 
 struct Color 
@@ -108,6 +126,8 @@ enum MOUSE_BUTTON : Uint32
 struct Clock
 {
 private:
+    static Clock* instance;
+
     uint32_t last_tick_time = 0;
     uint32_t delta = 0;
 
@@ -117,6 +137,8 @@ private:
     double frameTime = 0.0;
 
 public:
+    Clock() { instance = this; }
+
     double deltaTime = 0.0;
     float fDeltaTime = 0.0;
 
@@ -141,6 +163,7 @@ public:
     }
 
     Uint32 GetFps() { return fps; }
+    static float GetDeltaTime() { return instance->fDeltaTime; }
 };
 
 enum KeyState : Uint8
@@ -175,6 +198,9 @@ namespace gobl
         Color color{ 0xFF, 0xFF, 0xFF, 0xFF };
         int textureId = -1;
         SDL_Rect rect{}, sprRect{};
+        bool flipped = false;
+
+        const SDL_RendererFlip GetFlipped() { return flipped ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE; }
 
         RenderObject(SDL_Texture* texture, SDL_Rect rect, SDL_Rect sprRect) 
         {
@@ -377,6 +403,8 @@ namespace gobl
         // Mutators
         Sprite* SetPosition(int x, int y);
         Sprite* SetPosition(IntVec2 pos) { return SetPosition(pos.x, pos.y); }
+        Sprite* SetPosition(Vec2 pos) { return SetPosition(static_cast<int>(pos.x), static_cast<int>(pos.y)); }
+        Sprite* SetFlipped(bool value) { renderObject.flipped = value; return this; };
 
         // Accessors
         IntVec2 GetPosition() { return { renderObject.rect.x, renderObject.rect.y }; }
@@ -410,6 +438,8 @@ namespace gobl
     class GoblEngine
     {
     private:
+        static GoblEngine* instance;
+
         GoblRenderer renderer{};
         Sprite* splash = nullptr;
         Camera* cam;
@@ -422,10 +452,12 @@ namespace gobl
 
     public:
         Clock time;
-        bool debugging = false;
+        static bool debugging;
 
         void Launch()
         {
+            instance = this;
+
             cam = new Camera();
             InputManager inputManager{};
             Init();
@@ -548,7 +580,7 @@ namespace gobl
     public:
         void SetTitle(const char* title) { renderer.SetWinTitle(title); }
 
-        Camera* GetCameraObject() { return cam; }
+        static Camera* GetCameraObject() { return instance->cam; }
         Vec2 GetCamera() { return cam->pos; }
         void MoveCamera(float mX, float mY) { cam->pos = cam->pos + Vec2{ mX, mY }; }
         void MoveZoom(float amnt) { cam->zoom += amnt; }
@@ -603,7 +635,7 @@ namespace gobl
             spr.SetSpriteIndex(1);
             spr.SetDimensions(13, 12);
             spr.SetScale(3.0f);
-            spr.SetPosition({ pos.x + (active ? spr.GetScale().x - (w + 5) : -5), pos.y });
+            spr.SetPosition(IntVec2{ pos.x + (active ? spr.GetScale().x - (w + 5) : -5), pos.y });
             spr.SetAlpha(255);
             spr.Draw();
         }

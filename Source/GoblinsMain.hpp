@@ -20,7 +20,6 @@ public:
 
 	gobl::Switch testSwitch;
 
-	gobl::Sprite sprite;
 	gobl::Sprite highlightSprite;
 
 	MAP::Map map;

@@ -3,6 +3,8 @@
 #include <fstream>
 using json = nlohmann::json;
 
+Clock* Clock::instance = nullptr;
+
 // Input manager
 namespace gobl
 {
@@ -398,7 +400,7 @@ namespace gobl
             }
 
             // Move the texture to the renderer
-            if (SDL_RenderCopy(sdlRenderer, texture, &renderObjects.at(i).sprRect, &r) < 0)
+            if (SDL_RenderCopyEx(sdlRenderer, texture, &renderObjects.at(i).sprRect, &r, 0.0, NULL, renderObjects.at(i).GetFlipped()) < 0)
                 std::cout << "ERROR: " << SDL_GetError() << std::endl;
         }
 
@@ -512,4 +514,11 @@ namespace gobl
         renderer = _renderer;
         if (path != "") LoadTexture(path);
     }
+}
+
+// Engine
+namespace gobl 
+{
+    bool GoblEngine::debugging = false;
+    GoblEngine* GoblEngine::instance = nullptr;
 }

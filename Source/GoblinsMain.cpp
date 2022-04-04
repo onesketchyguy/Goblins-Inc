@@ -1,4 +1,5 @@
 #include "GoblinsMain.hpp"
+#include "GoblinObj.hpp"
 
 using namespace gobl;
 
@@ -11,6 +12,7 @@ Uint32 tileTypeIndex = -1;
 Color validPlacementColor = { 0, 0, 0, 150 };
 Color invalidPlacementColor = { 0, 0, 0, 75 };
 
+GoblinObj goblin{};
 
 // Tools
 bool CanPlace(const MAP::TileData& a, const MAP::TileData& b) { return a.buildLayer != "" && a.buildLayer == b.layer; }
@@ -323,7 +325,6 @@ bool GoblinsMain::Start()
 
 	CreateSpriteObject(highlightSprite, "Sprites/highlightTile.png");
 	highlightSprite.SetColorMod(Color::BLACK);
-	CreateSpriteObject(sprite, "Sprites/worker.png");
 	CreateSpriteObject(title, "Sprites/Title_HighRes.png");
 	title.SetScale(0.9f);
 
@@ -343,6 +344,8 @@ bool GoblinsMain::Start()
 	viewArea = map.GetTileMapPos(GetScreenWidth(), GetScreenHeight());
 	viewArea.x += 1;
 	viewArea.y += 2;
+
+	goblin.GenerateSprite(this);
 
 	return true;
 }
@@ -417,16 +420,23 @@ bool GoblinsMain::Update()
 		return true;
 	}
 
-	sprite.DrawRelative(GetCameraObject());
+	goblin.Update();
 
 	if (testSwitch.GetActive() && DrawTileOptions() == false)
 	{
-		if (tileTypeIndex != -1)
-		{
-			HandlePlaceItems();
-		}
+		if (tileTypeIndex != -1) HandlePlaceItems();
 	}
-	else if (testSwitch.GetActive() == false) tileTypeIndex = -1;
+	else if (testSwitch.GetActive() == false) 
+	{
+		tileTypeIndex = -1;
+		highlighting = false;
+	}
+
+	if (tileTypeIndex == -1) 
+	{
+		if (InputManager::GetMouseButtonUp(MB_LEFT))
+			goblin.MoveTo(worldMouse);
+	}
 
 	// Draw UI
 	testSwitch.Update();

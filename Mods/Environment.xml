@@ -16,7 +16,7 @@
 </EnvironmentObject>
 <EnvironmentObject name="Wall">
 	<sprite sprIndex="3"></sprite>
-	<buildable layer="wall"></buildable>
+	<buildable layer="wall" collision="true"></buildable>
 	<placable layer="ground" multi="true" linear="true"></placable>
 </EnvironmentObject>
 <EnvironmentObject name="Door">

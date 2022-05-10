@@ -20,9 +20,13 @@ public:
 
 	gobl::Switch testSwitch;
 
+	gobl::Sprite testSprite;
+
 	gobl::Sprite highlightSprite;
 
 	MAP::Map map;
+
+	static long long money;
 
 	// FIXME: Provide a proper scene system
 	Scene currScene = Scene::MainMenu;

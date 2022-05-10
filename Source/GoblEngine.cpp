@@ -102,6 +102,7 @@ namespace gobl
 const Color Color::WHITE = { 0xFF, 0xFF, 0xFF, 0xFF };
 const Color Color::RED = { 0xFF, 0, 0, 0xFF };
 const Color Color::BLUE = { 0, 0, 0xFF, 0xFF };
+const Color Color::LIGHT_BLUE = { 150, 150, 0xFF, 0xFF };
 const Color Color::GREEN = { 0, 0xFF, 0, 0xFF };
 const Color Color::BLACK = { 0, 0, 0, 0xFF };
 

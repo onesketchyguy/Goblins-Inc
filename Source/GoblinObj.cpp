@@ -1,4 +1,5 @@
 #include "GoblinObj.hpp"
+#include "GoblinsMain.hpp"
 #include <stdio.h>
 
 void GoblinObj::HandleEvents()
@@ -28,9 +29,7 @@ void GoblinObj::HandleEvents()
 
 void GoblinObj::MoveToTarget()
 {
-	IntVec2 dim = sprite.GetDimensions();
-
-	if (targetPos.x > pos.x) 
+	if (targetPos.x > pos.x)
 	{
 		// Face right
 		sprite.SetFlipped(true);
@@ -41,8 +40,14 @@ void GoblinObj::MoveToTarget()
 		sprite.SetFlipped(false);
 	}
 
-	pos.x = lerp(pos.x, targetPos.x, Clock::GetDeltaTime());
-	pos.y = lerp(pos.y, targetPos.y, Clock::GetDeltaTime());
+	Vec2 newPos = pos;
+	newPos.MoveTowards(targetPos, moveSpd * Clock::GetDeltaTime());
+
+	int mapIndex = map->GetTileFromWorldPos(static_cast<int>(newPos.x), static_cast<int>(newPos.y));
+	if (map->GetCollision(mapIndex) == false)
+	{
+		pos = newPos;
+	}
 }
 
 void GoblinObj::MoveTo(Vec2 pos) 
@@ -75,4 +80,65 @@ void GoblinObj::RunTestEvents()
 	
 	events.push(e1);
 	events.push(e2);
+}
+
+void GoblinObj::Update()
+{
+	if (inWorkHours)
+	{
+		HandleEvents();
+
+		if (workableId == -1)
+		{
+			// FIXME: Save the ID for future use
+			workableId = map->GetEmptyWorkable();
+
+			if (workableId != -1)
+			{
+				IntVec2 deskPos = map->GetWorkable(workableId);
+				MoveTo(Vec2{ float(deskPos.x), float(deskPos.y) });
+			}
+		}
+		else
+		{
+			if (atHome)
+			{
+				// Go to work
+				SetAtHome(false);
+				IntVec2 deskPos = map->GetWorkable(workableId);
+				MoveTo(Vec2{ float(deskPos.x), float(deskPos.y) });
+			}
+			else if (events.empty()) // We have no tasks, add one
+			{
+				// FIXME: Use the workable to determine what task to do
+
+				auto action = [](GoblinObj* obj)
+				{
+					// FIXME: Work on a task
+					obj->taskProgress++;
+
+					if (obj->taskProgress >= 200)
+					{
+						// Provide income on task completion
+
+						// FIXME: Set amount based on workable task
+						GoblinsMain::money++;
+
+						obj->EndCurrentTask();
+					}
+				};
+
+				events.push(action);
+			}
+		}
+	}
+	else
+	{
+		// Go home and do nothing
+		SetAtHome(true);
+		MoveTo(Vec2{ 0.0f, 0.0f });
+	}
+
+	sprite.SetPosition(pos);
+	sprite.DrawRelative(gobl::GoblEngine::GetCameraObject());
 }

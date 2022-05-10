@@ -25,6 +25,7 @@ struct IntVec2
     
     IntVec2 operator +(IntVec2& b) { return IntVec2{ x + b.x, y + b.y }; }
     IntVec2 operator -(IntVec2& b) { return IntVec2{ x - b.x, y - b.y }; }
+    IntVec2 operator *(int& b) { return IntVec2{ x * b, y * b }; }
 
     bool operator ==(IntVec2 b)
     {
@@ -51,13 +52,21 @@ struct Vec2
 
     Vec2 operator +(IntVec2 b) { return Vec2{ x + static_cast<float>(b.x), y + static_cast<float>(b.y) }; }
     Vec2 operator -(IntVec2 b) { return Vec2{ x - static_cast<float>(b.x), y - static_cast<float>(b.y) }; }
-
     bool operator ==(Vec2 b) 
     { 
         bool xEq = abs(x) - abs(b.x) <= 0.001f;
         bool yEq = abs(y) - abs(b.y) <= 0.001f;
 
         return xEq && yEq;
+    }
+
+    void MoveTowards(Vec2 other, float delta)
+    {
+        float dX = (other.x - this->x) * delta;
+        float dY = (other.y - this->y) * delta;
+
+        this->x += dX;
+        this->y += dY;
     }
 
     static float GetDistance(Vec2 a, Vec2 b) { return abs(abs(a.x) - abs(b.x)) + (abs(a.y) - abs(b.y)); }
@@ -87,6 +96,7 @@ public: // Constant colors
     const static Color WHITE;
     const static Color RED;
     const static Color BLUE;
+    const static Color LIGHT_BLUE;
     const static Color GREEN;
     const static Color BLACK;
 };
@@ -133,6 +143,7 @@ private:
 
     Uint32 fps = 30;
     Uint32 frames = 0;
+    long long totalFrames = 0;
 
     double frameTime = 0.0;
 
@@ -152,6 +163,7 @@ public:
 
         last_tick_time = tick_time;
 
+        totalFrames++;
         frames++;
         frameTime += deltaTime;
         if (frameTime >= 1.0f) // Real fps
@@ -163,6 +175,7 @@ public:
     }
 
     Uint32 GetFps() { return fps; }
+    long long GetFrames() { return totalFrames; }
     static float GetDeltaTime() { return instance->fDeltaTime; }
 };
 

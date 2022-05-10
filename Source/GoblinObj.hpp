@@ -3,6 +3,7 @@
 #define GOBLIN_OBJ_H
 
 #include "GoblEngine.hpp"
+#include "Map.hpp"
 #include <unordered_map>
 #include <queue>
 
@@ -17,11 +18,15 @@ private:
 
 	std::unordered_map<std::string, uint8_t> skills{};
 
+	int workableId = -1;
+
 	float speed = 1.0f;
+	float moveSpd = 0.5f;
 
 	const float TIMER_COUNT = 1.0f;
 	float timer = TIMER_COUNT;
 
+	bool atHome = true;
 	bool inWorkHours = true;
 	bool doingTask = false;
 
@@ -29,6 +34,8 @@ private:
 	std::queue<void(*)(GoblinObj* obj)> events{};
 
 	void HandleEvents();
+
+	MAP::Map* map = nullptr;
 
 public: // Accessors
 	const Vec2 GetPos() { return pos; };
@@ -40,27 +47,21 @@ public: // Accessors
 		return arrived;
 	}
 
-public:
-	void Update() 
-	{
-		if (inWorkHours) 
-		{
-			HandleEvents();
-		}
-		else 
-		{
-			// Go home and do nothing
-		}
+public: // Mutators
+	void SetAtHome(bool v) { atHome = v;  }
+	void AssignMap(MAP::Map* map) { this->map = map; }
 
-		sprite.SetPosition(pos);
-		sprite.DrawRelative(gobl::GoblEngine::GetCameraObject());
-	}
+public:
+	unsigned char taskProgress = 0;
+
+	void Update();
 
 	void MoveToTarget();
 	void MoveTo(Vec2 pos);
 	void RunTestEvents();
 	void EndCurrentTask() 
 	{ 
+		taskProgress = 0;
 		if (gobl::GoblEngine::debugging) std::cout << "Goblin-" << id << ": Finished task." << std::endl;
 		doingTask = false;
 	}

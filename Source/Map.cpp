@@ -15,6 +15,8 @@ namespace MAP
 	{
 		std::string elementName = std::string(currElement->Name());
 
+		if (elementName == "growable") tileData.SetBoolAttribute(elementName, true);
+
 		// Read attributes
 		auto curAtt = currElement->FirstAttribute();
 		if (curAtt != nullptr)
@@ -46,7 +48,7 @@ namespace MAP
 							std::cout << "\t\tLayer attribute found on unknown tag: " << curAtt->Value() << std::endl;
 					}
 				}
-				else if (elementName == "placable" || elementName == "rotate")
+				else if (elementName == "placable" || elementName == "rotate" || currAttName == "collision")
 				{
 					if (currAttValue != "true" && currAttValue != "false")
 					{
@@ -55,7 +57,7 @@ namespace MAP
 					else 
 					{
 						bool value = (currAttValue == "true");
-						tileData.AddBoolAttribute(currAttName, value);
+						tileData.SetBoolAttribute(currAttName, value);
 
 						if (MAP_DEBUG_VERBOSE)
 							std::cout << "\t\tAttribute " << currAttName << ": " << curAtt->Value() << std::endl;
@@ -72,7 +74,7 @@ namespace MAP
 					// Try to add this attribute to the int list if possible
 					try
 					{
-						tileData.AddIntAttribute(currAttName, std::stoi(curAtt->Value()));
+						tileData.SetIntAttribute(currAttName, std::stoi(curAtt->Value()));
 
 						if (MAP_DEBUG_VERBOSE)
 							std::cout << "\t\tAttribute " << currAttName << ": " << tileData.GetIntAttribute(currAttName) << std::endl;
@@ -86,6 +88,13 @@ namespace MAP
 
 							if (MAP_DEBUG_VERBOSE)
 								std::cout << "\t\tLocation attribute: " << texturePath << std::endl;
+						}
+						else if (elementName == WORKABLE_ATT)
+						{
+							tileData.SetBoolAttribute(elementName, true);
+
+							if (MAP_DEBUG_VERBOSE)
+								std::cout << "\t\tWorkable attribute script: " << currAttValue << std::endl;
 						}
 						else 
 						{
@@ -101,6 +110,7 @@ namespace MAP
 		}
 		else
 		{
+			tileData.SetBoolAttribute(elementName, true);
 			std::cout << "\t\tWARNING: No " << elementName << " attributes found!" << std::endl;
 		}
 	}
@@ -244,7 +254,7 @@ namespace MAP
 			HandleObjElements(currElement, obj, texturePath);
 
 			// Push the object to the stack
-			obj.AddIntAttribute(SPRITE_ATT, static_cast<int>(objSprites.size()));
+			obj.SetIntAttribute(SPRITE_ATT, static_cast<int>(objSprites.size()));
 			objSprites.push_back(new gobl::Sprite());
 			objSprites[obj.GetIntAttribute(SPRITE_ATT)] = ge->CreateSpriteObject(texturePath.c_str());
 			objects.push_back(obj);
@@ -259,9 +269,15 @@ namespace MAP
 		mapLength = width * height;
 		mapLayers = new Uint32[mapLength];
 		objLayers = new Sint32[mapLength];
+		colMap = new bool[mapLength];
 
-		for (Uint32 i = 0; i < mapLength; i++) mapLayers[i] = 0; // FIXME: Load old map data
-		for (Uint32 i = 0; i < mapLength; i++) objLayers[i] = -1; // FIXME: Load old map data
+		// FIXME: Load old map data
+		for (Uint32 i = 0; i < mapLength; i++) 
+		{
+			mapLayers[i] = 0;
+			objLayers[i] = -1;
+			colMap[i] = false;
+		}
 
 		// Load all the mods
 		for (const auto& file : std::filesystem::recursive_directory_iterator(path))
@@ -292,8 +308,17 @@ namespace MAP
 
 		for (auto& spr : objSprites)
 		{
+			spr->SetSpriteIndex(0);
 			spr->SetDimensions(sprSize);
 			spr->SetColorMod(Color::WHITE);
+		}
+
+		// FIXME: I hate this
+		for (auto& obj : objects)
+		{
+			int dX = obj.GetIntAttribute("dimX");
+			int dY = obj.GetIntAttribute("dimY");
+			if (dX != 0 && dY != 0) objSprites[obj.GetIntAttribute(SPRITE_ATT)]->SetDimensions(dX, dY);
 		}
 	}
 
@@ -306,12 +331,50 @@ namespace MAP
 		// Draw tiles
 		envTex->SetSpriteIndex(GetType(mapLayers[i]).GetIntAttribute(SPRITE_ATT));
 		envTex->SetPosition(envTex->GetScale().x * x, envTex->GetScale().y * y);
+
+		if (gobl::GoblEngine::debugging) 
+		{
+			if (colMap[i]) envTex->SetColorMod(Color::RED);
+			else envTex->SetColorMod(Color::LIGHT_BLUE);
+		}
+
 		envTex->DrawRelative(ge->GetCameraObject());
 
 		// Draw items
+		// FIXME: Move "objects" over to Objects with positions instead of being pure data in an array
 		if (objLayers[i] >= 0)
 		{
 			Uint32 sprIndex = objects[objLayers[i]].GetIntAttribute(SPRITE_ATT);
+
+			if (gobl::GoblEngine::debugging && objects[objLayers[i]].GetBoolAttribute(WORKABLE_ATT)) 
+				objSprites[sprIndex]->SetColorMod(Color::GREEN);
+			else objSprites[sprIndex]->SetColorMod(Color::WHITE);
+
+
+			if (objects[objLayers[i]].GetBoolAttribute("growable"))
+			{
+				const char GROW_INDEX = objects[objLayers[i]].GetIntAttribute("length") - 1; // Allow the modder to specify the index
+
+				std::string growableName = "GrowthIndex" + std::to_string(i);
+				int growableIndex = objects[objLayers[i]].GetIntAttribute(growableName);
+				objSprites[sprIndex]->SetSpriteIndex(GROW_INDEX - growableIndex);
+
+				if (growableIndex < GROW_INDEX)
+				{
+					std::string growthName = "growth" + std::to_string(i);
+					int growthIndex = objects[objLayers[i]].GetIntAttribute(growthName);
+
+					if (growthIndex >= objects[objLayers[i]].GetIntAttribute("rate")) // Allow the modder to specify the growth rate
+					{
+						objects[objLayers[i]].SetIntAttribute(growableName, growableIndex + 1);
+						objects[objLayers[i]].SetIntAttribute(growthName, 0);
+
+						if (growableIndex + 1 >= GROW_INDEX) objects[objLayers[i]].ClearIntAttribute(growthName);
+					}
+					else objects[objLayers[i]].SetIntAttribute(growthName, growthIndex + 1);
+				}
+			}
+
 			objSprites[sprIndex]->SetPosition(envTex->GetScale().x * x, envTex->GetScale().y * y);
 			objSprites[sprIndex]->DrawRelative(ge->GetCameraObject());
 		}
@@ -413,5 +476,36 @@ namespace MAP
 	IntVec2 Map::GetTilePos(int id)
 	{
 		return { envTex->GetScale().x * (id % width), envTex->GetScale().y * (id / width) };
+	}
+
+	int Map::GetEmptyWorkable() 
+	{
+		// Find an available workable
+		for (auto& o : workables)
+		{
+			if (objects[objLayers[o]].GetBoolAttribute(WORKABLE_ATT) == false) continue;
+			if (objects[objLayers[o]].GetBoolAttribute("inUse") == false) return o;
+		}
+
+		return -1;
+	}
+
+	IntVec2 Map::GetWorkable(int id) 
+	{
+		if (id != -1) 
+		{
+			// Check for if the workable is currently in use
+			if (objects[objLayers[id]].GetBoolAttribute("inUse") == false) return GetTilePos(id);
+		}
+
+		// Find an available workable
+		for (auto& o : workables)
+		{
+			if (objects[objLayers[o]].GetBoolAttribute(WORKABLE_ATT) == false) continue;
+			if (objects[objLayers[o]].GetBoolAttribute("inUse") == false) 
+				return IntVec2{ (Sint32(o) % width) * envTex->GetScale().x , (Sint32(o) / width) * envTex->GetScale().y };
+		}
+
+		return IntVec2{ 0, 0 };
 	}
 }

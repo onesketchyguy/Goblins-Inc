@@ -10,8 +10,9 @@ namespace MAP
 {
 	const char SPRITE_ATT[9] = "sprIndex";
 	const char PRICE_ATT[6] = "price";
-	const char MULTI_PLACE_ATT[14] = "multi";
+	const char MULTI_PLACE_ATT[6] = "multi";
 	const char LINEAR_ATT[7] = "linear";
+	const char WORKABLE_ATT[9] = "workable";
 
 	extern bool MAP_DEBUG_VERBOSE;
 
@@ -29,6 +30,9 @@ namespace MAP
 
 		// What layer this is on
 		std::string layer = "";
+
+		void ClearIntAttribute(std::string val) { intAtts.erase(val); }
+		void ClearBoolAttribute(std::string val) { boolAtts.erase(val); }
 
 		int GetIntAttribute(std::string val)
 		{
@@ -50,8 +54,16 @@ namespace MAP
 			else return boolAtts[val];
 		}
 
-		void AddIntAttribute(std::string name, int val) { intAtts.emplace(name, val); }
-		void AddBoolAttribute(std::string name, bool val) { boolAtts.emplace(name, val); }
+		void SetIntAttribute(std::string name, int val) 
+		{ 
+			if (intAtts.find(name) == intAtts.end()) intAtts.emplace(name, val);
+			else intAtts[name] = val;
+		}
+		void SetBoolAttribute(std::string name, bool val) 
+		{
+			if (boolAtts.find(name) == boolAtts.end()) boolAtts.emplace(name, val);
+			else boolAtts[name] = val;
+		}
 	};
 
 	class Map
@@ -69,7 +81,10 @@ namespace MAP
 
 		Uint32* mapLayers = nullptr;
 		Sint32* objLayers = nullptr;
+		bool* colMap = nullptr;
 		Uint64 sprLength = 0;
+
+		std::vector<Uint32> workables{};
 
 		gobl::GoblEngine* ge = nullptr;
 
@@ -96,6 +111,9 @@ namespace MAP
 		void DrawRegion(Uint32 w, Uint32 h, int x, int y);
 		void BlurDrawRegion(Uint32 w, Uint32 h, int offX, int offY);
 
+		void SetCollision(Uint32 index, bool value) { colMap[index] = value; }
+		bool GetCollision(Uint32 index) { return colMap[index]; }
+
 		const IntVec2 GetMapSize() { return { width, height }; }
 
 		Uint32 GetTileTypeCount() { return tiles.size(); }
@@ -110,8 +128,27 @@ namespace MAP
 			return tiles[0];
 		}
 
-		void SetObject(Uint32 id, Sint32 index) { objLayers[id] = index; };
-		void SetTile(int id, Uint32 index) { mapLayers[id] = index; }
+		void SetObject(Uint32 id, Sint32 index) 
+		{ 
+			if (index >= 0 && objects[index].GetBoolAttribute(WORKABLE_ATT))
+			{
+				workables.push_back(id);
+			}
+			else 
+			{
+				// FIXME: if finds workable in list, remove it
+			}
+
+			objLayers[id] = index; 
+		};
+		void SetTile(int id, Uint32 index) 
+		{ 
+			mapLayers[id] = index;
+			colMap[id] = GetType(index).GetBoolAttribute("collision");
+		}
+
+		int GetEmptyWorkable();
+		IntVec2 GetWorkable(int id);
 
 		Uint32 GetTileLayer(int id) { return mapLayers[id]; }
 		gobl::Sprite* GetTileTexture() { return envTex; }

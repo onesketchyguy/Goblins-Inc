@@ -3,6 +3,8 @@
 
 using namespace gobl;
 
+long long GoblinsMain::money = 0;
+
 IntVec2 viewArea{};
 IntVec2 startMouse{};
 IntVec2 startCell{};
@@ -234,9 +236,7 @@ void GoblinsMain::HandlePlaceItems()
 	}
 
 	if (highlighting == false)
-	{
 		startCell = map.GetTileMapPos(static_cast<int>(worldMouse.x), static_cast<int>(worldMouse.y));
-	}
 
 
 	IntVec2 finalCell = map.GetTileMapPos(static_cast<int>(worldMouse.x), static_cast<int>(worldMouse.y));
@@ -328,6 +328,8 @@ bool GoblinsMain::Start()
 	CreateSpriteObject(title, "Sprites/Title_HighRes.png");
 	title.SetScale(0.9f);
 
+	CreateSpriteObject(testSprite, "Sprites/MissingTexture.png");
+
 	GetEngineLogo()->SetPosition(GetScreenWidth() - GetEngineLogo()->GetDimensions().x, 
 		GetScreenHeight() - GetEngineLogo()->GetDimensions().y);
 
@@ -346,6 +348,7 @@ bool GoblinsMain::Start()
 	viewArea.y += 2;
 
 	goblin.GenerateSprite(this);
+	goblin.AssignMap(&map);
 
 	return true;
 }
@@ -356,6 +359,9 @@ void GoblinsMain::DrawWorld(bool blur)
 
 	if (blur == false) map.DrawRegion(viewArea.x, viewArea.y, cell.x, cell.y);
 	else map.BlurDrawRegion(viewArea.x, viewArea.y, cell.x, cell.y);
+
+	//testSprite.SetPosition(map.GetEmptyWorkable(-1));
+	//testSprite.DrawRelative(GetCameraObject());
 }
 
 bool GoblinsMain::Update()
@@ -434,8 +440,9 @@ bool GoblinsMain::Update()
 
 	if (tileTypeIndex == -1) 
 	{
-		if (InputManager::GetMouseButtonUp(MB_LEFT))
-			goblin.MoveTo(worldMouse);
+		// DEBUG: Moves a unit to a selected position
+		/*if (InputManager::GetMouseButtonUp(MB_LEFT))
+			goblin.MoveTo(worldMouse);*/
 	}
 
 	// Draw UI
@@ -458,6 +465,8 @@ bool GoblinsMain::Update()
 	if (InputManager::GetKey(SDLK_LEFT)) camMove.x -= spd * time.fDeltaTime;
 	if (InputManager::GetKey(SDLK_UP)) camMove.y -= spd * time.fDeltaTime;
 	if (InputManager::GetKey(SDLK_DOWN)) camMove.y += spd * time.fDeltaTime;
+
+	DrawOutlinedString("Money: " + std::to_string(money), 0, 0, 20, 3U);
 
 	MoveCamera(camMove.x, camMove.y);
 	//MoveZoom(InputManager::GetMouseWheel());

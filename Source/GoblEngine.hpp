@@ -385,6 +385,7 @@ namespace gobl
     {
     private:
         RenderObject renderObject{};
+        IntVec2 staticDim{};
 
         GoblRenderer* renderer = nullptr;
 
@@ -397,6 +398,8 @@ namespace gobl
         Sprite* SetAlpha(Uint8 alpha) { renderObject.color.a = alpha; return this; }
         Sprite* SetColorMod(Color c) { renderObject.color = { c.r, c.g, c.b, c.a }; return this; }
 
+        Sprite* SetStaticDimensions(int w, int h);
+        Sprite* ResetDimensions();
         Sprite* SetDimensions(int w, int h);
         Sprite* SetDimensions(IntVec2 d) { return SetDimensions(d.x, d.y); }
         IntVec2 GetDimensions() { return { renderObject.sprRect.w, renderObject.sprRect.h }; }

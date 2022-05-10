@@ -257,6 +257,12 @@ namespace MAP
 			obj.SetIntAttribute(SPRITE_ATT, static_cast<int>(objSprites.size()));
 			objSprites.push_back(new gobl::Sprite());
 			objSprites[obj.GetIntAttribute(SPRITE_ATT)] = ge->CreateSpriteObject(texturePath.c_str());
+
+			int dX = obj.GetIntAttribute("dimX");
+			int dY = obj.GetIntAttribute("dimY");
+			if (dX != 0 && dY != 0) objSprites[obj.GetIntAttribute(SPRITE_ATT)]->SetStaticDimensions(dX, dY);
+			else objSprites[obj.GetIntAttribute(SPRITE_ATT)]->SetStaticDimensions(sprSize.x, sprSize.y);
+
 			objects.push_back(obj);
 
 			currElement = currElement->NextSiblingElement();
@@ -271,14 +277,7 @@ namespace MAP
 		objLayers = new Sint32[mapLength];
 		colMap = new bool[mapLength];
 
-		// FIXME: Load old map data
-		for (Uint32 i = 0; i < mapLength; i++) 
-		{
-			mapLayers[i] = 0;
-			objLayers[i] = -1;
-			colMap[i] = false;
-		}
-
+		std::cout << "Loading mods..." << std::endl;
 		// Load all the mods
 		for (const auto& file : std::filesystem::recursive_directory_iterator(path))
 		{
@@ -299,6 +298,27 @@ namespace MAP
 		}
 
 		std::cout << "Finished loading mods." << std::endl;
+		std::cout << "Loading world..." << std::endl;
+
+		// Find all the items that can be spawned at the creation of the world
+		std::vector<int> initObjects{ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 }; // Create a list of empty objects to posative bias empty tiles
+		int i = 0;
+		for (auto& obj : objects)
+		{
+			if (obj.GetBoolAttribute("growable")) 
+			{
+				initObjects.push_back(i);
+			}
+			i++;
+		}
+
+		// FIXME: Load old map data
+		for (Uint32 i = 0; i < mapLength; i++)
+		{
+			mapLayers[i] = 0;
+			objLayers[i] = initObjects[rand() % initObjects.size()];
+			colMap[i] = false;
+		}
 	}
 
 	void Map::ResetTexture() 
@@ -309,16 +329,8 @@ namespace MAP
 		for (auto& spr : objSprites)
 		{
 			spr->SetSpriteIndex(0);
-			spr->SetDimensions(sprSize);
+			spr->ResetDimensions();
 			spr->SetColorMod(Color::WHITE);
-		}
-
-		// FIXME: I hate this
-		for (auto& obj : objects)
-		{
-			int dX = obj.GetIntAttribute("dimX");
-			int dY = obj.GetIntAttribute("dimY");
-			if (dX != 0 && dY != 0) objSprites[obj.GetIntAttribute(SPRITE_ATT)]->SetDimensions(dX, dY);
 		}
 	}
 
@@ -351,6 +363,7 @@ namespace MAP
 			else objSprites[sprIndex]->SetColorMod(Color::WHITE);
 
 
+			// FIXME: Update growables even when they aren't on screen
 			if (objects[objLayers[i]].GetBoolAttribute("growable"))
 			{
 				const char GROW_INDEX = objects[objLayers[i]].GetIntAttribute("length") - 1; // Allow the modder to specify the index

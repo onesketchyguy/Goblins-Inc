@@ -310,10 +310,41 @@ void GoblinsMain::HandlePlaceItems()
 				map.GetTexture(index)->SetColorMod(Color::RED);
 			}
 
-
-
 			map.GetTexture(index)->SetPosition(map.GetTilePos(id))->DrawRelative(GetCameraObject());
 			highlightSprite.DrawRelative(GetCameraObject());
+		}
+	}
+}
+
+void GoblinsMain::HandlePickupItems() 
+{
+	Vec2 worldMouse = GetCamera() + InputManager::GetMouse();
+
+	if (highlighting == true) return;
+
+	if (InputManager::GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT))
+	{
+		IntVec2 finalCell = map.GetTileMapPos(static_cast<int>(worldMouse.x), static_cast<int>(worldMouse.y));
+
+		if (finalCell.x != -1 && finalCell.y != -1) 
+		{
+			// Clicked on a tile
+
+			int id = map.GetTile(finalCell.x, finalCell.y);
+			auto tile = map.GetType(map.GetObjectLayer(id) + map.GetTileTypeCount());
+			bool pickup = tile.GetBoolAttribute("pickup");
+
+			//std::cout << tile.name << " id(" << map.GetObjectLayer(id) << ")" << " Pickup: " << (pickup ? "true" : "false") << std::endl;
+
+			// If tile is a pickup, delete it and add it to the inventory
+			if (pickup) 
+			{
+				map.SetObject(id, -1);
+
+				// FIXME: Add item to inventory
+				// FIXME: Run an interaction script
+			}
+
 		}
 	}
 }
@@ -425,6 +456,8 @@ bool GoblinsMain::Update()
 
 		return true;
 	}
+
+	HandlePickupItems();
 
 	goblin.Update();
 

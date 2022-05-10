@@ -447,6 +447,28 @@ namespace gobl
     }
     int Sprite::GetSpriteIndex() { return (renderObject.sprRect.x / renderObject.sprRect.w); }
 
+    Sprite* Sprite::ResetDimensions()
+    {
+        renderObject.sprRect.w = staticDim.x;
+        renderObject.sprRect.h = staticDim.y;
+        renderObject.rect.w = staticDim.x;
+        renderObject.rect.h = staticDim.y;
+
+        return this;
+    }
+
+    Sprite* Sprite::SetStaticDimensions(int w, int h)
+    {
+        renderObject.sprRect.w = w;
+        renderObject.sprRect.h = h;
+        renderObject.rect.w = w;
+        renderObject.rect.h = h;
+
+        staticDim = { w, h };
+
+        return this;
+    }
+
     Sprite* Sprite::SetDimensions(int w, int h)
     {
         renderObject.sprRect.w = w;
@@ -508,6 +530,9 @@ namespace gobl
     {
         std::cout << "Loading texture... " << path << std::endl;
         renderObject.textureId = TextureManager::CreateTexture(renderer->LoadTexture(path, renderObject.rect, renderObject.sprRect));
+
+        staticDim.x = renderObject.sprRect.w;
+        staticDim.y = renderObject.sprRect.h;
     }
 
     void Sprite::Create(GoblRenderer* _renderer, const char* path)

@@ -121,9 +121,8 @@ namespace MAP
 
 		MAP::TileData GetType(const Uint32 layerID) 
 		{
-			if (layerID < tiles.size())
-				return tiles[layerID];
-			else return objects[layerID - tiles.size()];
+			if (layerID < tiles.size()) return tiles[layerID];
+			else if (layerID - tiles.size() < objects.size()) return objects[layerID - tiles.size()];
 
 			return tiles[0];
 		}
@@ -151,6 +150,7 @@ namespace MAP
 		IntVec2 GetWorkable(int id);
 
 		Uint32 GetTileLayer(int id) { return mapLayers[id]; }
+		int GetObjectLayer(int id) { return objLayers[id]; }
 		gobl::Sprite* GetTileTexture() { return envTex; }
 		gobl::Sprite* GetTexture(const Uint32 index) { return objSprites[index]; }
 

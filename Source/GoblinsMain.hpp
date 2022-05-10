@@ -40,6 +40,7 @@ public:
 	//const int texturesToLoad = 5;
 
 	void HandlePlaceItems();
+	void HandlePickupItems();
 	void DrawButton(std::string buttonText, IntVec2 pos, bool& clicked);
 	void DrawValidate(std::string prompt, bool& yes, bool& no);
 	void DrawSelectedObject();

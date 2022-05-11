@@ -300,19 +300,17 @@ namespace MAP
 		std::cout << "Finished loading mods." << std::endl;
 		std::cout << "Loading world..." << std::endl;
 
+
+		// Create a list of empty objects to posative bias empty tiles
+		std::vector<int> initObjects{ };
+		for (unsigned char i = 0; i < 20; i++) initObjects.push_back(-1);
+
 		// Find all the items that can be spawned at the creation of the world
-		std::vector<int> initObjects{ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 }; // Create a list of empty objects to posative bias empty tiles
-		int i = 0;
-		for (auto& obj : objects)
-		{
-			if (obj.GetBoolAttribute("growable")) 
-			{
-				initObjects.push_back(i);
-			}
-			i++;
-		}
+		for (unsigned int i = 0; i < objects.size(); i++)
+			if (objects[i].GetBoolAttribute("growable")) initObjects.push_back(i);
 
 		// FIXME: Load old map data
+		srand(static_cast<unsigned int>(time(0)));
 		for (Uint32 i = 0; i < mapLength; i++)
 		{
 			mapLayers[i] = 0;
@@ -363,6 +361,7 @@ namespace MAP
 			else objSprites[sprIndex]->SetColorMod(Color::WHITE);
 
 
+			// FIXME: Find a better way to update growables than one at a time
 			// FIXME: Update growables even when they aren't on screen
 			if (objects[objLayers[i]].GetBoolAttribute("growable"))
 			{
@@ -426,8 +425,11 @@ namespace MAP
 
 	void Map::BlurDrawRegion(Uint32 w, Uint32 h, int offX, int offY)
 	{
+		// FIXME: Actually blur the region please
 		DrawRegion(w, h, offX, offY);
 	}
+
+	// ---------- Accessors  ---------------
 
 	bool Map::Overlaps(int id, int x, int y)
 	{
@@ -520,5 +522,38 @@ namespace MAP
 		}
 
 		return IntVec2{ 0, 0 };
+	}
+
+	// --------- Mutators -----------------
+
+	void Map::SetObject(Uint32 id, Sint32 index)
+	{
+		if (index >= 0 && objects[index].GetBoolAttribute(WORKABLE_ATT))
+		{
+			workables.push_back(id);
+		}
+		else
+		{
+			// FIXME: if finds workable in list, remove it
+		}
+
+		objLayers[id] = index;
+	};
+
+	void Map::SetTile(int id, Uint32 index)
+	{
+
+		// FIXME: GetType is returning a tile not an object
+		mapLayers[id] = index;
+
+		if (objLayers[id] >= 0) 
+		{
+			auto t = GetType(objLayers[id] + GetTileTypeCount());
+			if (t.layer.length() > 0 && t.layer != GetType(mapLayers[id]).buildLayer)
+				SetObject(id, -1); // FIXME: Provide a refund for items that cost money
+			else std::cout << t.name << " is valid placement: " << t.buildLayer << " " << GetType(mapLayers[id]).layer << std::endl;
+		}
+
+		colMap[id] = GetType(index).GetBoolAttribute("collision");
 	}
 }

@@ -100,6 +100,7 @@ namespace MAP
 
 			delete mapLayers;
 			delete objLayers;
+			delete colMap;
 
 			for (auto& s : objSprites) delete s;
 		}
@@ -124,28 +125,11 @@ namespace MAP
 			if (layerID < tiles.size()) return tiles[layerID];
 			else if (layerID - tiles.size() < objects.size()) return objects[layerID - tiles.size()];
 
-			return tiles[0];
+			return TileData{};
 		}
 
-		void SetObject(Uint32 id, Sint32 index) 
-		{ 
-			if (index >= 0 && objects[index].GetBoolAttribute(WORKABLE_ATT))
-			{
-				workables.push_back(id);
-			}
-			else 
-			{
-				// FIXME: if finds workable in list, remove it
-			}
-
-			objLayers[id] = index; 
-		};
-		void SetTile(int id, Uint32 index) 
-		{ 
-			mapLayers[id] = index;
-			colMap[id] = GetType(index).GetBoolAttribute("collision");
-		}
-
+		void SetObject(Uint32 id, Sint32 index);
+		void SetTile(int id, Uint32 index);
 		int GetEmptyWorkable();
 		IntVec2 GetWorkable(int id);
 

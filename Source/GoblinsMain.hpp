@@ -21,6 +21,7 @@ public:
 	gobl::Switch testSwitch;
 
 	gobl::Sprite testSprite;
+	gobl::Sprite moneySprite;
 
 	gobl::Sprite highlightSprite;
 

@@ -15,11 +15,12 @@ void GoblinObj::HandleEvents()
 		return;
 	}
 
-	if (timer <= 0)
+	if (timer <= 0.0f)
 	{
 		timer = TIMER_COUNT;
+		if (events.empty()) return;
 
-		if (gobl::GoblEngine::debugging) std::cout << "Goblin-" << id << ": Doing event.." << std::endl;
+		if (gobl::GoblEngine::debugging) std::cout << "Goblin-" << id << ": Doing task.." << std::endl;
 
 		// Dequeue an event and execute it
 		doingTask = true;
@@ -115,14 +116,16 @@ void GoblinObj::Update()
 				auto action = [](GoblinObj* obj)
 				{
 					// FIXME: Work on a task
-					obj->taskProgress++;
+					obj->skills["typing"] = 10;
 
-					if (obj->taskProgress >= 200)
+					obj->taskProgress += rand() % obj->skills["typing"]; // FIXME: Aquire the skill table index from the workable
+
+					if (obj->taskProgress >= 255) // FIXME: Allow the workable to determine how long to work on a task
 					{
 						// Provide income on task completion
 
 						// FIXME: Set amount based on workable task
-						GoblinsMain::money++;
+						GoblinsMain::money += rand() % 10;
 
 						obj->EndCurrentTask();
 					}

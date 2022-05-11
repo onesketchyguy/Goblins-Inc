@@ -359,6 +359,8 @@ bool GoblinsMain::Start()
 	CreateSpriteObject(title, "Sprites/Title_HighRes.png");
 	title.SetScale(0.9f);
 
+	CreateSpriteObject(moneySprite, "Sprites/moneySign.png");
+
 	CreateSpriteObject(testSprite, "Sprites/MissingTexture.png");
 
 	GetEngineLogo()->SetPosition(GetScreenWidth() - GetEngineLogo()->GetDimensions().x, 
@@ -499,7 +501,17 @@ bool GoblinsMain::Update()
 	if (InputManager::GetKey(SDLK_UP)) camMove.y -= spd * time.fDeltaTime;
 	if (InputManager::GetKey(SDLK_DOWN)) camMove.y += spd * time.fDeltaTime;
 
-	DrawOutlinedString("Money: " + std::to_string(money), 0, 0, 20, 3U);
+	// Display the users money
+	std::string moneyStr = std::to_string(money);
+	auto num = money / 100;
+	auto den = money % 100;
+	moneyStr = std::to_string(num) + ".";
+	if (den < 10) moneyStr += "0" + std::to_string(den);
+	else moneyStr += std::to_string(den);
+	
+	moneySprite.SetColorMod(Color::GREEN);
+	moneySprite.Draw();
+	DrawOutlinedString(moneyStr, 30, 4, 30, 3U);
 
 	MoveCamera(camMove.x, camMove.y);
 	//MoveZoom(InputManager::GetMouseWheel());

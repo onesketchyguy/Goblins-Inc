@@ -60,7 +60,24 @@ struct Vec2
         return xEq && yEq;
     }
 
-    void MoveTowards(Vec2 other, float delta)
+    void MoveTowards(Vec2 other, float amnt)
+    {
+        float dX = (other.x - this->x);
+        float dY = (other.y - this->y);
+        if (dX > 0.01f) dX = 1; else if (dX < -0.01f) dX = -1; else dX = 0;
+        if (dY > 0.01f) dY = 1; else if (dY < -0.01f) dY = -1; else dY = 0;
+
+        this->x += dX * amnt;
+        this->y += dY * amnt;
+
+        if (this->x > other.x && dX > 0) this->x = other.x;
+        if (this->y > other.y && dY > 0) this->y = other.y;
+
+        if (this->x < other.x && dX < 0) this->x = other.x;
+        if (this->y < other.y && dY < 0) this->y = other.y;
+    }
+
+    void Lerp(Vec2 other, float delta)
     {
         float dX = (other.x - this->x) * delta;
         float dY = (other.y - this->y) * delta;

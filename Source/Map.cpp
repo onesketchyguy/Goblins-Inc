@@ -310,7 +310,6 @@ namespace MAP
 			if (objects[i].GetBoolAttribute("growable")) initObjects.push_back(i);
 
 		// FIXME: Load old map data
-		srand(static_cast<unsigned int>(time(0)));
 		for (Uint32 i = 0; i < mapLength; i++)
 		{
 			mapLayers[i] = 0;

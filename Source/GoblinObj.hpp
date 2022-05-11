@@ -21,7 +21,7 @@ private:
 	int workableId = -1;
 
 	float speed = 1.0f;
-	float moveSpd = 0.5f;
+	float moveSpd = 15.0f;
 
 	const float TIMER_COUNT = 1.0f;
 	float timer = TIMER_COUNT;

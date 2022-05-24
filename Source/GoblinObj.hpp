@@ -6,6 +6,7 @@
 #include "Map.hpp"
 #include <unordered_map>
 #include <queue>
+#include "CompositeSprite.hpp"
 
 class GoblinObj
 {
@@ -14,14 +15,14 @@ private:
 
 	Vec2 pos{};
 	Vec2 targetPos{};
-	gobl::Sprite sprite;
+	cSpr::CompositeSprite sprite;
 
 	std::unordered_map<std::string, uint8_t> skills{};
 
 	int workableId = -1;
 
 	float speed = 1.0f;
-	float moveSpd = 15.0f;
+	float moveSpd = 25.0f;
 
 	const float TIMER_COUNT = 1.0f;
 	float timer = TIMER_COUNT;
@@ -68,7 +69,23 @@ public:
 
 	void GenerateSprite(gobl::GoblEngine* ge)
 	{
-		ge->CreateSpriteObject(sprite, "Sprites/worker.png");
+		sprite.SetEngine(ge);
+		// FIXME: Allow modder to input the goblins sprites
+		std::string* dirs = new std::string[]{"Sprites/Worker_Eyes.png", "Sprites/Worker_Mouth.png", "Sprites/Worker_Nose.png", "Sprites/Worker_Hair.png", "Sprites/Worker_Head.png" };
+		unsigned int len = 5;
+		unsigned int sprLen = 5; // FIXME: Allow modder to specify the number of goblin sprites
+		sprite.CreateSprites(dirs, len);
+		delete[] dirs;
+
+		sprite.SetDimensions({ 32,32 });
+		sprite.SetReverseRenderOrder(true);
+
+		int* indexs = new int[len];
+		for (unsigned int i = 0; i < len; i++)
+			indexs[i] = rand() % sprLen; // FIXME: Use a separate sprite length for each goblin sprite element
+
+		sprite.SetSprites(indexs);
+		delete[] indexs;
 	}
 
 	GoblinObj() 

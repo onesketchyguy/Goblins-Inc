@@ -364,6 +364,7 @@ bool GoblinsMain::Start()
 	title.SetScale(0.9f);
 
 	CreateSpriteObject(moneySprite, "Sprites/moneySign.png");
+	moneySprite.SetPosition(0, 5);
 
 	CreateSpriteObject(testSprite, "Sprites/MissingTexture.png");
 

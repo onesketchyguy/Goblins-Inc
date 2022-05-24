@@ -8,6 +8,9 @@
 namespace MAP
 {
 	const std::string TEXTURE_PATH = "Sprites/";
+	const std::string GROWABLE_TAG = "growable";
+	const std::string GROWTH_INDEX = "GrowthIndex";
+	const std::string LENGTH_TAG = "length";
 	bool MAP_DEBUG_VERBOSE = false;
 
 	// XML stuff
@@ -307,13 +310,22 @@ namespace MAP
 
 		// Find all the items that can be spawned at the creation of the world
 		for (unsigned int i = 0; i < objects.size(); i++)
-			if (objects[i].GetBoolAttribute("growable")) initObjects.push_back(i);
+			if (objects[i].GetBoolAttribute(GROWABLE_TAG)) initObjects.push_back(i);
 
 		// FIXME: Load old map data
 		for (Uint32 i = 0; i < mapLength; i++)
 		{
 			mapLayers[i] = 0;
 			objLayers[i] = initObjects[rand() % initObjects.size()];
+
+			if (objLayers[i] > 0 && objects[objLayers[i]].GetBoolAttribute(GROWABLE_TAG))
+			{
+				const char GROW_INDEX = objects[objLayers[i]].GetIntAttribute(LENGTH_TAG) - 1; // Allow the modder to specify the index
+
+				std::string growableName = GROWTH_INDEX + std::to_string(i);
+				objects[objLayers[i]].SetIntAttribute(growableName, rand() % GROW_INDEX);
+			}
+
 			colMap[i] = false;
 		}
 	}
@@ -333,7 +345,7 @@ namespace MAP
 
 	void Map::DrawTile(Uint32 x, Uint32 y) 
 	{
-		Uint64 i = i = y * width + x;
+		Uint64 i = y * width + x;
 
 		// FIXME: Implement lights
 
@@ -359,31 +371,14 @@ namespace MAP
 				objSprites[sprIndex]->SetColorMod(Color::GREEN);
 			else objSprites[sprIndex]->SetColorMod(Color::WHITE);
 
-
-			// FIXME: Find a better way to update growables than one at a time
-			// FIXME: Update growables even when they aren't on screen
-			if (objects[objLayers[i]].GetBoolAttribute("growable"))
+			if (objects[objLayers[i]].GetBoolAttribute(GROWABLE_TAG))
 			{
-				const char GROW_INDEX = objects[objLayers[i]].GetIntAttribute("length") - 1; // Allow the modder to specify the index
+				const char GROW_INDEX = objects[objLayers[i]].GetIntAttribute(LENGTH_TAG) - 1; // Allow the modder to specify the index
 
-				std::string growableName = "GrowthIndex" + std::to_string(i);
+				std::string growableName = GROWTH_INDEX + std::to_string(i);
 				int growableIndex = objects[objLayers[i]].GetIntAttribute(growableName);
+
 				objSprites[sprIndex]->SetSpriteIndex(GROW_INDEX - growableIndex);
-
-				if (growableIndex < GROW_INDEX)
-				{
-					std::string growthName = "growth" + std::to_string(i);
-					int growthIndex = objects[objLayers[i]].GetIntAttribute(growthName);
-
-					if (growthIndex >= objects[objLayers[i]].GetIntAttribute("rate")) // Allow the modder to specify the growth rate
-					{
-						objects[objLayers[i]].SetIntAttribute(growableName, growableIndex + 1);
-						objects[objLayers[i]].SetIntAttribute(growthName, 0);
-
-						if (growableIndex + 1 >= GROW_INDEX) objects[objLayers[i]].ClearIntAttribute(growthName);
-					}
-					else objects[objLayers[i]].SetIntAttribute(growthName, growthIndex + 1);
-				}
 			}
 
 			objSprites[sprIndex]->SetPosition(envTex->GetScale().x * x, envTex->GetScale().y * y);
@@ -426,6 +421,46 @@ namespace MAP
 	{
 		// FIXME: Actually blur the region please
 		DrawRegion(w, h, offX, offY);
+	}
+
+	void Map::UpdateObjects() 
+	{
+		for (Uint32 x = 0; x < width; x++)
+		{
+			for (Uint32 y = 0; y < height; y++)
+			{
+				Uint64 i = y * width + x;
+
+				// Update items
+				// FIXME: Move "objects" over to Objects with positions instead of being pure data in an array
+				if (objLayers[i] >= 0)
+				{
+					// FIXME: Find a better way to update growables than one at a time
+					if (objects[objLayers[i]].GetBoolAttribute(GROWABLE_TAG))
+					{
+						const char GROW_INDEX = objects[objLayers[i]].GetIntAttribute(LENGTH_TAG) - 1; // Allow the modder to specify the index
+
+						std::string growableName = GROWTH_INDEX + std::to_string(i);
+						int growableIndex = objects[objLayers[i]].GetIntAttribute(growableName);
+
+						if (growableIndex < GROW_INDEX)
+						{
+							std::string growthName = "growth" + std::to_string(i);
+							int growthIndex = objects[objLayers[i]].GetIntAttribute(growthName);
+
+							if (growthIndex >= objects[objLayers[i]].GetIntAttribute("rate")) // Allow the modder to specify the growth rate
+							{
+								objects[objLayers[i]].SetIntAttribute(growableName, growableIndex + 1);
+								objects[objLayers[i]].SetIntAttribute(growthName, 0);
+
+								if (growableIndex + 1 >= GROW_INDEX) objects[objLayers[i]].ClearIntAttribute(growthName);
+							}
+							else objects[objLayers[i]].SetIntAttribute(growthName, growthIndex + 1);
+						}
+					}
+				}
+			}
+		}
 	}
 
 	// ---------- Accessors  ---------------

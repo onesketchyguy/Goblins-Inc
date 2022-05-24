@@ -16,13 +16,13 @@
 </ModObject>
 <ModObject name="Pink flower">
 	<sprite name="pink flowers.png" dimX="16" dimY="16"></sprite>
-	<growable length="3" rate="300"></growable>
+	<growable length="3" rate="3"></growable>
 	<pickup></pickup>
 	<placable layer="grass" multi="false"></placable>
 </ModObject>
 <ModObject name="Red flower">
 	<sprite name="red flowers.png" dimX="16" dimY="16"></sprite>
-	<growable length="3" rate="500"></growable>
+	<growable length="3" rate="8"></growable>
 	<pickup></pickup>
 	<placable layer="grass" multi="false"></placable>
 </ModObject>

@@ -112,6 +112,8 @@ namespace MAP
 		void DrawRegion(Uint32 w, Uint32 h, int x, int y);
 		void BlurDrawRegion(Uint32 w, Uint32 h, int offX, int offY);
 
+		void UpdateObjects();
+
 		void SetCollision(Uint32 index, bool value) { colMap[index] = value; }
 		bool GetCollision(Uint32 index) { return colMap[index]; }
 

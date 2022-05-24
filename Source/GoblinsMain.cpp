@@ -16,6 +16,9 @@ Color invalidPlacementColor = { 0, 0, 0, 75 };
 
 GoblinObj goblin{};
 
+// FIXME: Make a time manager
+unsigned char hour = 0;
+
 // Tools
 bool CanPlace(const MAP::TileData& a, const MAP::TileData& b) { return a.buildLayer != "" && a.buildLayer == b.layer; }
 
@@ -353,6 +356,7 @@ void GoblinsMain::HandlePickupItems()
 bool GoblinsMain::Start()
 {
 	map = MAP::Map(this, 64, 64, "Mods/");
+	map.UpdateObjects();
 
 	CreateSpriteObject(highlightSprite, "Sprites/highlightTile.png");
 	highlightSprite.SetColorMod(Color::BLACK);
@@ -460,6 +464,17 @@ bool GoblinsMain::Update()
 	}
 
 	HandlePickupItems();
+
+	// FIXME: Move map.UpdateObjects() to the end or start of a day
+	// DEBUG: This should update the map objects
+	if (hour >= 250)
+	{
+		map.UpdateObjects();
+		hour = 0;
+	}
+
+	// FIXME: Make a time manager
+	hour++;
 
 	goblin.Update();
 

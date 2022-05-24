@@ -14,7 +14,16 @@ Uint32 tileTypeIndex = -1;
 Color validPlacementColor = { 0, 0, 0, 150 };
 Color invalidPlacementColor = { 0, 0, 0, 75 };
 
-GoblinObj goblin{};
+std::vector<GoblinObj*> goblins{};
+
+void GoblinsMain::HireGoblin() 
+{
+	GoblinObj* goblin = new GoblinObj();
+	goblin->GenerateSprite(this);
+	goblin->AssignMap(&map);
+
+	goblins.push_back(goblin);
+}
 
 // FIXME: Make a time manager
 unsigned char hour = 0;
@@ -380,13 +389,15 @@ bool GoblinsMain::Start()
 	testSwitch.GetSprite().SetScale(4.0f);
 	testSwitch.SetPosition({ 900, 50 });
 
+	CreateSpriteObject(hireNewGoblin, "Sprites/worker.png");
+	hireNewGoblin.SetPosition(GetScreenWidth() - 64, GetScreenHeight() - 64);
+	hireNewGoblin.SetScale(2.0f);
+	hireNewGoblin.SetAlpha(100);
+
 	// Calculate viewarea
 	viewArea = map.GetTileMapPos(GetScreenWidth(), GetScreenHeight());
 	viewArea.x += 1;
 	viewArea.y += 2;
-
-	goblin.GenerateSprite(this);
-	goblin.AssignMap(&map);
 
 	return true;
 }
@@ -477,7 +488,31 @@ bool GoblinsMain::Update()
 	// FIXME: Make a time manager
 	hour++;
 
-	goblin.Update();
+	// Goblin management
+	for (unsigned int i = 0; i < goblins.size(); i++) 
+	{
+		goblins.at(i)->Update();
+	}
+
+	// FIXME: Use a hiring manager
+	// --Start goblin hiring process
+	if (hireNewGoblin.Overlaps(mousePos)) 
+	{
+		hireNewGoblin.SetAlpha(255);
+
+		if (InputManager::GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT)) 
+		{
+			// Hire a new goblin
+			HireGoblin();
+		}
+	}
+	else 
+	{
+		hireNewGoblin.SetAlpha(100);
+	}
+
+	hireNewGoblin.Draw();
+	// --End goblin hiring process
 
 	if (testSwitch.GetActive() && DrawTileOptions() == false)
 	{

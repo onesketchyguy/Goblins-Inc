@@ -22,7 +22,12 @@
 </ModObject>
 <ModObject name="Red flower">
 	<sprite name="red flowers.png" dimX="16" dimY="16"></sprite>
-	<growable length="3" rate="8"></growable>
+	<growable length="3" rate="4"></growable>
 	<pickup></pickup>
+	<placable layer="grass" multi="false"></placable>
+</ModObject>
+<ModObject name="Fruit tree">
+	<sprite name="FruitTree.png" dimX="32" dimY="32"></sprite>
+	<growable length="10" rate="2"></growable>
 	<placable layer="grass" multi="false"></placable>
 </ModObject>

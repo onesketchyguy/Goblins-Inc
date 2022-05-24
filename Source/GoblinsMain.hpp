@@ -22,6 +22,7 @@ public:
 
 	gobl::Sprite testSprite;
 	gobl::Sprite moneySprite;
+	gobl::Sprite hireNewGoblin; // DEBUG: Using this for a temporary solution for hiring goblins
 
 	gobl::Sprite highlightSprite;
 
@@ -39,6 +40,9 @@ public:
 	// FIXME: Load in the textures overtime instead of all at once
 	//int texturesLoaded = 0;
 	//const int texturesToLoad = 5;
+
+	// FIXME: Use a goblin manager
+	void HireGoblin();
 
 	void HandlePlaceItems();
 	void HandlePickupItems();

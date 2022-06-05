@@ -13,6 +13,8 @@ namespace MAP
 	const std::string LENGTH_TAG = "length";
 	bool MAP_DEBUG_VERBOSE = false;
 
+	IntVec2 sprSize{ 0,0 };
+
 	// XML stuff
 	void HandleAttributes(tinyxml2::XMLElement* currElement, MAP::TileData& tileData, std::string& texturePath)
 	{
@@ -29,6 +31,36 @@ namespace MAP
 				std::string currAttValue = std::string(curAtt->Value());
 				std::string currAttName = std::string(curAtt->Name());
 
+				// Set the map sprite data
+				if (elementName == "EnvironmentSprite")
+				{
+					if (currAttName == "name")
+					{
+						texturePath += currAttValue;
+					}
+
+					if (currAttName == "w")
+					{
+						sprSize.x = std::stoi(currAttValue);
+
+						std::cout << "\t\tWidth attribute: " << sprSize.x << std::endl;
+					}
+					else if (currAttName == "h")
+					{
+						sprSize.y = std::stoi(currAttValue);
+
+						std::cout << "\t\tHeight attribute: " << sprSize.y << std::endl;
+					}
+					else if (currAttName != "name")
+					{
+						std::cout << "\t\tUnknown Attribute: " << currAttName << ", " << currAttValue << std::endl;
+					}
+
+					curAtt = curAtt->Next();
+					continue;
+				}
+
+				// FIXME: Refactor build layers to be clearer
 				if (currAttName == "layer")
 				{
 					if (elementName == "buildable")
@@ -57,7 +89,7 @@ namespace MAP
 					{
 						std::cout << "\t\tAttribute " << currAttName << " unhandled! " << curAtt->Value() << std::endl;
 					}
-					else 
+					else
 					{
 						bool value = (currAttValue == "true");
 						tileData.SetBoolAttribute(currAttName, value);
@@ -85,7 +117,7 @@ namespace MAP
 					catch (std::exception&) // Ignore the exception error since it's expected for some attributes
 					{
 						// Handle the sprite location attribute
-						if (elementName == "sprite")
+						if (elementName == "sprite" && currAttName == "name")
 						{
 							texturePath += currAttValue;
 
@@ -99,7 +131,7 @@ namespace MAP
 							if (MAP_DEBUG_VERBOSE)
 								std::cout << "\t\tWorkable attribute script: " << currAttValue << std::endl;
 						}
-						else 
+						else
 						{
 							// This attribute has no handler
 							if (MAP_DEBUG_VERBOSE)
@@ -138,112 +170,7 @@ namespace MAP
 			currElement = currElement->NextSiblingElement();
 		}
 	}
-	void Map::LoadMapModData(const char* path)
-	{
-		std::string texturePath = TEXTURE_PATH;
-
-		tinyxml2::XMLDocument doc;
-		doc.LoadFile(path);
-
-		auto current = doc.FirstChildElement();
-		if (current != nullptr)
-		{
-			int id = 0;
-
-			// Read each mod object
-			while (current != nullptr)
-			{
-				const char* title = current->FindAttribute("name")->Value();
-
-				if (MAP_DEBUG_VERBOSE || std::string(current->Name()) == "EnvironmentSprite")
-					std::cout << current->Name() << ": " << title << std::endl;
-
-				// Set sprite data
-				if (std::string(current->Name()) == "EnvironmentSprite")
-				{
-					texturePath += std::string(title);
-
-					auto curAtt = current->FirstAttribute();
-					if (curAtt != nullptr)
-					{
-						while (curAtt != nullptr)
-						{
-							if (std::string(curAtt->Name()) == "w")
-							{
-								sprSize.x = std::stoi(curAtt->Value());
-
-								std::cout << "\t\tWidth attribute: " << sprSize.x << std::endl;
-							}
-							else if (std::string(curAtt->Name()) == "h")
-							{
-								sprSize.y = std::stoi(curAtt->Value());
-
-								std::cout << "\t\tHeight attribute: " << sprSize.y << std::endl;
-							}
-							else if (std::string(curAtt->Name()) == "debug")
-							{
-								MAP_DEBUG_VERBOSE = std::string(curAtt->Value()) == "true";
-
-								std::cout << "\t\tDebug attribute: " << MAP_DEBUG_VERBOSE << std::endl;
-							}
-							else if (std::string(curAtt->Name()) != "name")
-							{
-								std::cout << "\t\tUnknown Attribute: " << curAtt->Name() << ", " << curAtt->Value() << std::endl;
-							}
-
-							curAtt = curAtt->Next();
-						}
-					}
-					else
-					{
-						std::cout << "ERROR: No sprite attributes provided!" << std::endl;
-					}
-				}
-				else
-				{
-					// Handle element data
-					auto curModElement = current->FirstChildElement();
-
-					MAP::TileData tileData;
-					tileData.name = std::string(title);
-
-					// Read each element of that mod object
-					while (curModElement != nullptr)
-					{
-						std::string empty = "";
-						HandleAttributes(curModElement, tileData, empty);
-
-						// Move to next element
-						curModElement = curModElement->NextSiblingElement();
-					}
-
-					// Provide info for buildable tag and others
-					tiles.push_back(tileData);
-
-					id++;
-				}
-
-				// Move on to the next mod block
-				current = current->NextSiblingElement();
-
-				if (MAP_DEBUG_VERBOSE) std::cout << std::endl;
-			}
-
-			if (MAP_DEBUG_VERBOSE)
-				std::cout << "\n\nFinished loading map mods." << std::endl;
-
-			// Only create one new sprite for the entire map texture
-			// Create the sprite object
-			envTex = ge->CreateSpriteObject(texturePath.c_str());
-			envTex->SetDimensions(sprSize.x, sprSize.y);
-
-		}
-		else
-		{
-			std::cout << "ERROR: No environment mod found!" << std::endl;
-		}
-	}
-	void Map::LoadObjModData(const char* path)
+	void Map::LoadModData(const char* path)
 	{
 		tinyxml2::XMLDocument doc;
 		doc.LoadFile(path);
@@ -253,20 +180,52 @@ namespace MAP
 		{
 			std::string texturePath = TEXTURE_PATH;
 			TileData obj{};
+			std::string empty = "";
+			std::string currName = std::string(currElement->Name());
 
-			HandleObjElements(currElement, obj, texturePath);
+			if (currName == "EnvironmentSprite")
+			{
+				std::cout << "Environment sprite found!" << std::endl;
 
-			// Push the object to the stack
-			obj.SetIntAttribute(SPRITE_ATT, static_cast<int>(objSprites.size()));
-			objSprites.push_back(new gobl::Sprite());
-			objSprites[obj.GetIntAttribute(SPRITE_ATT)] = ge->CreateSpriteObject(texturePath.c_str());
+				// Only create one new sprite for the entire map texture
+				// Create the sprite object
 
-			int dX = obj.GetIntAttribute("dimX");
-			int dY = obj.GetIntAttribute("dimY");
-			if (dX != 0 && dY != 0) objSprites[obj.GetIntAttribute(SPRITE_ATT)]->SetStaticDimensions(dX, dY);
-			else objSprites[obj.GetIntAttribute(SPRITE_ATT)]->SetStaticDimensions(sprSize.x, sprSize.y);
+				if (envTex == nullptr) 
+				{
+					HandleAttributes(currElement, obj, texturePath);
 
-			objects.push_back(obj);
+					envTex = ge->CreateSpriteObject(texturePath.c_str());
+					envTex->SetDimensions(sprSize.x, sprSize.y);
+				}
+				else 
+				{
+					std::cerr << "\tWARNING! Unable to load environment sprite, the sprite has already been loaded elsewhere." << std::endl;
+				}
+			}
+			else if (currName == "EnvironmentObject")
+			{
+				std::cout << "Tile object found!" << std::endl;
+				HandleObjElements(currElement, obj, empty);
+
+				// Provide info for buildable tag and others
+				tiles.push_back(obj);
+			}
+			else 
+			{
+				HandleObjElements(currElement, obj, texturePath);
+
+				// Push the object to the stack
+				obj.SetIntAttribute(SPRITE_ATT, static_cast<int>(objSprites.size()));
+				objSprites.push_back(new gobl::Sprite());
+				objSprites[obj.GetIntAttribute(SPRITE_ATT)] = ge->CreateSpriteObject(texturePath.c_str());
+
+				int dX = obj.GetIntAttribute("dimX");
+				int dY = obj.GetIntAttribute("dimY");
+				if (dX != 0 && dY != 0) objSprites[obj.GetIntAttribute(SPRITE_ATT)]->SetStaticDimensions(dX, dY);
+				else objSprites[obj.GetIntAttribute(SPRITE_ATT)]->SetStaticDimensions(sprSize.x, sprSize.y);
+
+				objects.push_back(obj);
+			}
 
 			currElement = currElement->NextSiblingElement();
 		}
@@ -280,24 +239,16 @@ namespace MAP
 		objLayers = new Sint32[mapLength];
 		colMap = new bool[mapLength];
 
-		std::cout << "Loading mods..." << std::endl;
 		// Load all the mods
+		std::cout << "Loading mods..." << std::endl;
+
 		for (const auto& file : std::filesystem::recursive_directory_iterator(path))
 		{
 			if (file.is_directory() || file.path().extension() != ".xml") continue;
+			std::string modPath = path + file.path().filename().string();
 
-			if (file.path().filename() == "Environment.xml")
-			{
-				std::cout << "Found environment file." << std::endl;
-				std::string envMods = path + std::string("Environment.xml");
-				LoadMapModData(envMods.c_str());
-			}
-			else 
-			{
-				std::string modPath = path + file.path().filename().string();
-				std::cout << "-Loading mod: " << modPath << std::endl;
-				LoadObjModData(modPath.c_str());
-			}
+			std::cout << "#\tLoading mod: " << modPath << std::endl;
+			LoadModData(modPath.c_str());
 		}
 
 		std::cout << "Finished loading mods." << std::endl;

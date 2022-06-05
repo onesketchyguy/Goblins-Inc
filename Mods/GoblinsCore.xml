@@ -1,3 +1,29 @@
+<EnvironmentSprite name="Environment.png" w="32" h="32"></EnvironmentSprite>
+
+<EnvironmentObject name="Grass">
+	<sprite sprIndex="0"></sprite>
+	<buildable layer="grass"></buildable>
+</EnvironmentObject>
+<EnvironmentObject name="Concrete">
+	<sprite sprIndex="1"></sprite>
+	<buildable layer="foundation"></buildable>
+	<placable layer="grass" multi="true"></placable>
+</EnvironmentObject>
+<EnvironmentObject name="Tile">
+	<sprite sprIndex="2"></sprite>
+	<buildable layer="ground"></buildable>
+	<placable layer="foundation" multi="true"></placable>
+</EnvironmentObject>
+<EnvironmentObject name="Wall">
+	<sprite sprIndex="3"></sprite>
+	<buildable layer="wall" collision="true"></buildable>
+	<placable layer="ground" multi="true" linear="true"></placable>
+</EnvironmentObject>
+<EnvironmentObject name="Door">
+	<sprite sprIndex="4"></sprite>
+	<placable layer="wall"></placable>
+</EnvironmentObject>
+
 <ModObject name="Desk" price="50" rotate="true">
 	<sprite name="Desk.png"></sprite>
 	<workable script="basicWork.lua">0.1</workable>
@@ -29,5 +55,6 @@
 <ModObject name="Fruit tree">
 	<sprite name="FruitTree.png" dimX="32" dimY="32"></sprite>
 	<growable length="10" rate="2"></growable>
+	<need type="hunger">10</need>
 	<placable layer="grass" multi="false"></placable>
 </ModObject>

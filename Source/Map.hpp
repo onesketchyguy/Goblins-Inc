@@ -74,7 +74,6 @@ namespace MAP
 
 		std::vector<TileData> tiles{};
 		gobl::Sprite* envTex = nullptr;
-		IntVec2 sprSize{ 0,0 };
 
 		std::vector<TileData> objects{};
 		std::vector<gobl::Sprite*> objSprites{};
@@ -89,8 +88,7 @@ namespace MAP
 		gobl::GoblEngine* ge = nullptr;
 
 	private: // XML stuff
-		void LoadMapModData(const char* path);
-		void LoadObjModData(const char* path);
+		void LoadModData(const char* path);
 
 	public: // Main map stuff
 		Map() = default;

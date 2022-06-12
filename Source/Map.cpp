@@ -204,7 +204,7 @@ namespace MAP
 			}
 			else if (currName == "EnvironmentObject")
 			{
-				std::cout << "Tile object found!" << std::endl;
+				//std::cout << "Tile object found!" << std::endl;
 				HandleObjElements(currElement, obj, empty);
 
 				// Provide info for buildable tag and others

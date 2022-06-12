@@ -9,6 +9,7 @@
 #include <vector>
 #include <unordered_map>
 #include <string>
+#include <SDL_mixer.h>
 
 inline float lerp(float a, float b, float f) { return (a * (1.0f - f)) + (b * f); }
 
@@ -204,6 +205,91 @@ enum KeyState : Uint8
     KEY_RELEASED = 3U,
 };
 
+// Audio
+namespace gobl 
+{
+    class SDLAudio 
+    {
+        Mix_Music* music = nullptr;
+        std::unordered_map<const char*, Mix_Chunk*> clips{};
+
+    public: // Initializers
+        SDLAudio(unsigned int inits = MIX_INIT_FLAC | MIX_INIT_MID | MIX_INIT_MOD | MIX_INIT_MP3 | MIX_INIT_OGG | MIX_INIT_OPUS)
+        {
+            int init = Mix_Init(inits);
+            Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 1024);
+        }
+
+        ~SDLAudio() 
+        {
+            Mix_CloseAudio();
+            Mix_Quit();
+        }
+
+    public: // Functions
+        void LoadMusic(const char* source) 
+        { 
+            music = Mix_LoadMUS(source);
+            if (!music) 
+            {
+                std::cerr << "\tERROR! Unable to load music: " << source << " - " << Mix_GetError() << std::endl;
+            }
+        }
+
+        void LoadSound(const char* source) 
+        {
+            Mix_Chunk* clip = Mix_LoadWAV(source); // Uses 'LoadWAV' even when it's not a wav file. Confusing I know.
+            if (!clip) std::cerr << "ERROR! Unable to load clip: " << source << " - " << Mix_GetError() << std::endl;
+            else 
+            {
+                clips.emplace(source, clip);
+            }
+        }
+
+        void PlayMusic(int loops = -1)
+        {
+            if (music == nullptr) 
+            {
+                std::cerr << "\tERROR: Cannot play a null music clip." << std::endl;
+            }
+            else Mix_PlayMusic(music, loops);
+        }
+
+        void StopMusic() 
+        {
+            Mix_FadeOutMusic(10);
+        }
+
+        void PlaySound(const char* source)
+        {
+            bool fileExists = clips.find(source) != clips.end();
+
+            // Check if sound is loaded
+            if (!fileExists)
+            {
+                std::cout << "\tWARNING! Attempting to play " << source << " which has not been loaded. \n" <<
+                    "\t\tAttempting to load: " << std::flush;
+                LoadSound(source);
+
+                fileExists = clips.find(source) != clips.end();
+                if (fileExists) std::cout << "Success." << std::endl;
+                else  std::cout << "FAILURE." << std::endl;
+            }
+
+            // Check a second time if sound exists
+            if (!fileExists)
+            {
+                std::cout << "\n\tERROR! Unable to play clip: " << source << " clip not found." << std::endl;
+            }
+            else
+            {
+                Mix_PlayChannel(-1, clips[source], 0);
+            }
+        }
+    };
+}
+
+// Renderer
 namespace gobl
 {
     class TextureManager
@@ -467,7 +553,11 @@ namespace gobl
     //public:
     //    // List components
     //};
+}
 
+// General engine
+namespace gobl 
+{
     class GoblEngine
     {
     private:
@@ -475,7 +565,8 @@ namespace gobl
 
         GoblRenderer renderer{};
         Sprite* splash = nullptr;
-        Camera* cam;
+        Camera* cam = nullptr;
+        SDLAudio* audio = nullptr;
 
         Sprite* ngnLogo = nullptr;
 
@@ -491,6 +582,7 @@ namespace gobl
         {
             instance = this;
 
+            audio = new SDLAudio(0);
             cam = new Camera();
             InputManager inputManager{};
             Init();
@@ -554,6 +646,7 @@ namespace gobl
             SDL_Quit();
             IMG_Quit();
             TTF_Quit();
+            delete audio;
             delete cam;
         }
 
@@ -561,16 +654,17 @@ namespace gobl
         void CreateSpriteObject(Sprite& sprite, const char* path) { sprite.Create(&renderer, path); }
 
         Sprite* GetEngineLogo() { return ngnLogo; }
+        SDLAudio* GetAudio() { return audio; }
 
     protected:
         virtual void Init() { SetTitle("demo"); }
-        virtual bool Splash() 
+        virtual bool Splash()
         {
             splash->Draw();
 
-            if (splashTime <= 1.0f) 
+            if (splashTime <= 1.0f)
             {
-                if (frameTime <= 0.0f) 
+                if (frameTime <= 0.0f)
                 {
                     int sprIndex = splash->GetSpriteIndex();
 
@@ -588,7 +682,7 @@ namespace gobl
         virtual bool Start() { return true; }
         virtual bool Update() { return true; }
         virtual void Draw(GoblRenderer& renderer) {}
-        virtual void Debug() 
+        virtual void Debug()
         {
             if (InputManager::GetKeyPressed(SDLK_F3)) debugging = !debugging;
             if (debugging)
@@ -633,7 +727,6 @@ namespace gobl
             return *this;
         }
     };
-
 }
 
 // UI stuff

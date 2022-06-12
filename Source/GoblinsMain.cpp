@@ -399,6 +399,10 @@ bool GoblinsMain::Start()
 	viewArea.x += 1;
 	viewArea.y += 2;
 
+	// Load audio
+	GetAudio()->LoadMusic("Sounds/Music/hopeblooming.wav");
+	GetAudio()->PlayMusic();
+
 	return true;
 }
 
@@ -483,6 +487,10 @@ bool GoblinsMain::Update()
 	{
 		map.UpdateObjects();
 		hour = 0;
+	}
+
+	if (InputManager::GetMouseButtonUp(1)) {
+		GetAudio()->PlaySound("Sounds/Blop.wav");
 	}
 
 	// FIXME: Make a time manager

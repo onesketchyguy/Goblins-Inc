@@ -95,7 +95,21 @@ namespace MAP
 						tileData.SetBoolAttribute(currAttName, value);
 
 						if (MAP_DEBUG_VERBOSE)
-							std::cout << "\t\tAttribute " << currAttName << ": " << curAtt->Value() << std::endl;
+							std::cout << "\t\tAttribute " << currAttName << ": " << currAttValue << std::endl;
+					}
+				}
+				else if (elementName == "onclick")
+				{
+					if (currAttName == "script")
+					{
+						tileData.SetStrAttribute(elementName, currAttValue);
+
+						if (MAP_DEBUG_VERBOSE)
+							std::cout << "\t\tAttribute " << currAttName << ": " << currAttValue << std::endl;
+					}
+					else 
+					{
+						std::cout << "\t\tElement: " << elementName << " written but not used! " << std::endl;
 					}
 				}
 				else if (currAttName == "debug")

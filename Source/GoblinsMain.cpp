@@ -1,5 +1,6 @@
 #include "GoblinsMain.hpp"
 #include "GoblinObj.hpp"
+#include "Scripting.hpp"
 
 using namespace gobl;
 
@@ -15,6 +16,8 @@ Color validPlacementColor = { 0, 0, 0, 150 };
 Color invalidPlacementColor = { 0, 0, 0, 75 };
 
 std::vector<GoblinObj*> goblins{};
+
+LuaMachine luaMachine{};
 
 void GoblinsMain::HireGoblin() 
 {
@@ -344,6 +347,11 @@ void GoblinsMain::HandlePickupItems()
 
 			int id = map.GetTile(finalCell.x, finalCell.y);
 			auto tile = map.GetType(map.GetObjectLayer(id) + map.GetTileTypeCount());
+			if (tile.GetStrAttribute("onclick").length() > 0) 
+			{
+				luaMachine.RunScriptFunction((std::string("Mods/") + tile.GetStrAttribute("onclick")).c_str(), "onclick");
+			}
+			
 			bool pickup = tile.GetBoolAttribute("pickup");
 
 			//std::cout << tile.name << " id(" << map.GetObjectLayer(id) << ")" << " Pickup: " << (pickup ? "true" : "false") << std::endl;
@@ -395,6 +403,7 @@ bool GoblinsMain::Start()
 	hireNewGoblin.SetAlpha(100);
 
 	// Calculate viewarea
+	std::cout << "Calculating viewport" << std::endl;
 	viewArea = map.GetTileMapPos(GetScreenWidth(), GetScreenHeight());
 	viewArea.x += 1;
 	viewArea.y += 2;
@@ -402,6 +411,11 @@ bool GoblinsMain::Start()
 	// Load audio
 	GetAudio()->LoadMusic("Sounds/Music/hopeblooming.wav");
 	GetAudio()->PlayMusic();
+
+	// Scripting	
+	luaMachine.SetEngine(this);
+	luaMachine.SetMap(&map);
+	// luaMachine.TestLua();
 
 	return true;
 }
@@ -489,9 +503,9 @@ bool GoblinsMain::Update()
 		hour = 0;
 	}
 
-	if (InputManager::GetMouseButtonUp(1)) {
-		GetAudio()->PlaySound("Sounds/Blop.wav");
-	}
+	//if (InputManager::GetMouseButtonUp(1)) {
+	//	GetAudio()->PlaySound("Sounds/Blop.wav");
+	//}
 
 	// FIXME: Make a time manager
 	hour++;

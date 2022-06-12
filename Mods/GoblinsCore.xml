@@ -43,6 +43,7 @@
 <ModObject name="Pink flower">
 	<sprite name="pink flowers.png" dimX="16" dimY="16"></sprite>
 	<growable length="3" rate="3"></growable>
+	<onclick script="flowerPickup.lua"></onclick>
 	<pickup></pickup>
 	<placable layer="grass" multi="false"></placable>
 </ModObject>

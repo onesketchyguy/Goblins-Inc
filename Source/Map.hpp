@@ -21,6 +21,7 @@ namespace MAP
 	private:
 		std::unordered_map<std::string, int> intAtts{};
 		std::unordered_map<std::string, bool> boolAtts{};
+		std::unordered_map<std::string, std::string> strAtts{};
 
 	public:
 		std::string name = "";
@@ -33,6 +34,7 @@ namespace MAP
 
 		void ClearIntAttribute(std::string val) { intAtts.erase(val); }
 		void ClearBoolAttribute(std::string val) { boolAtts.erase(val); }
+		void ClearStrAttribute(std::string val) { strAtts.erase(val); }
 
 		int GetIntAttribute(std::string val)
 		{
@@ -43,7 +45,6 @@ namespace MAP
 			}
 			else return intAtts[val];
 		}
-
 		bool GetBoolAttribute(std::string val)
 		{
 			if (boolAtts.find(val) == boolAtts.end())
@@ -52,6 +53,15 @@ namespace MAP
 				return false;
 			}
 			else return boolAtts[val];
+		}
+		std::string GetStrAttribute(std::string val)
+		{
+			if (strAtts.find(val) == strAtts.end())
+			{
+				if (MAP_DEBUG_VERBOSE) std::cout << "ERROR: string attribute; " << val << " not found." << std::endl;
+				return "";
+			}
+			else return strAtts[val];
 		}
 
 		void SetIntAttribute(std::string name, int val) 
@@ -63,6 +73,11 @@ namespace MAP
 		{
 			if (boolAtts.find(name) == boolAtts.end()) boolAtts.emplace(name, val);
 			else boolAtts[name] = val;
+		}
+		void SetStrAttribute(std::string name, std::string val)
+		{
+			if (strAtts.find(name) == strAtts.end()) strAtts.emplace(name, val);
+			else strAtts[name] = val;
 		}
 	};
 

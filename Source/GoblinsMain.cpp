@@ -10,6 +10,7 @@ IntVec2 viewArea{};
 IntVec2 startMouse{};
 IntVec2 startCell{};
 bool highlighting = false;
+bool bulldozing = false;
 Uint32 tileTypeIndex = -1;
 
 Color validPlacementColor = { 0, 0, 0, 150 };
@@ -44,6 +45,24 @@ bool GetMouseCam(bool handEmpty)
 }
 
 // Draw UI
+void GoblinsMain::DrawImageButton(gobl::Sprite & spr, IntVec2 pos, bool& clicked)
+{
+	spr.SetPosition(pos);
+
+	Color c = { 100, 100, 100 };
+	if (spr.Overlaps(InputManager::GetMouse().x, InputManager::GetMouse().y))
+	{
+		c.r = c.g = c.b = 200;
+
+		if (InputManager::GetMouseButton(MOUSE_BUTTON::MB_LEFT))
+		{
+			clicked = true;
+		}
+	}
+
+	spr.SetColorMod(c);
+	spr.Draw();
+}
 void GoblinsMain::DrawButton(std::string buttonText, IntVec2 pos, bool& clicked)
 {
 	button.SetPosition(pos);
@@ -141,7 +160,11 @@ bool GoblinsMain::DrawObjectOptions()
 		{
 			highLighting = i;
 
-			if (InputManager::GetMouseButtonUp(MB_LEFT)) tileTypeIndex = map.GetTileTypeCount() + i;
+			if (InputManager::GetMouseButtonUp(MB_LEFT)) 
+			{
+				tileTypeIndex = map.GetTileTypeCount() + i;
+				bulldozing = false;
+			}
 		}
 	}
 
@@ -245,23 +268,54 @@ void GoblinsMain::HandlePlaceItems()
 	if (InputManager::GetMouseButtonUp(MOUSE_BUTTON::MB_RIGHT))
 	{
 		highlighting = false;
+		bulldozing = false;
 		tileTypeIndex = -1;
 
 		return;
 	}
 
-	if (highlighting == false)
-		startCell = map.GetTileMapPos(static_cast<int>(worldMouse.x), static_cast<int>(worldMouse.y));
-
-
+	// Get the mouse position stuff
+	if (highlighting == false) startCell = map.GetTileMapPos(static_cast<int>(worldMouse.x), static_cast<int>(worldMouse.y));
 	IntVec2 finalCell = map.GetTileMapPos(static_cast<int>(worldMouse.x), static_cast<int>(worldMouse.y));
 	if (InputManager::GetMouseButtonDown(MOUSE_BUTTON::MB_LEFT)) highlighting = true;
-	if (InputManager::GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT)) highlighting = false;
+	else if (InputManager::GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT)) highlighting = false;
 
 	if (finalCell.x != -1 && finalCell.y != -1)
 	{
 		short lenX = 0;
 		short lenY = 0;
+
+		if (bulldozing) 
+		{
+			// Bulldoze items
+			
+			lenX = finalCell.x - startCell.x;
+			lenY = finalCell.y - startCell.y;
+
+			for (int y = 0; y < abs(lenY) + 1; y++)
+			{
+				short dirY = lenY > 0 ? y : -y;
+
+				for (int x = 0; x < abs(lenX) + 1; x++)
+				{
+					short dirX = lenX > 0 ? x : -x;
+
+					int id = map.GetTile(finalCell.x - dirX, finalCell.y - dirY);
+
+					if (InputManager::GetMouseButtonUp(MOUSE_BUTTON::MB_LEFT) == false)
+						highlightSprite.SetColorMod(validPlacementColor);
+					else map.SetTile(id, 0);
+
+					highlightSprite.SetPosition(map.GetTilePos(id));
+					highlightSprite.DrawRelative(GetCameraObject());
+				}
+			}
+
+
+			highlightSprite.DrawRelative(GetCameraObject());
+			
+			return;
+		}
 
 		if (tileTypeIndex < map.GetTileTypeCount())
 		{
@@ -303,12 +357,11 @@ void GoblinsMain::HandlePlaceItems()
 		}
 		else
 		{
-			// Place items
-
 			int id = map.GetTile(finalCell.x, finalCell.y);
 			highlightSprite.SetPosition(map.GetTilePos(id));
-
 			Uint32 index = tileTypeIndex - map.GetTileTypeCount();
+
+			// Place items
 
 			if (CanPlace(map.GetType(map.GetTileLayer(id)), map.GetType(tileTypeIndex)))
 			{
@@ -379,6 +432,9 @@ bool GoblinsMain::Start()
 	highlightSprite.SetColorMod(Color::BLACK);
 	CreateSpriteObject(title, "Sprites/Title_HighRes.png");
 	title.SetScale(0.9f);
+
+	CreateSpriteObject(bulldozerSprite, "Sprites/Bulldozer.png");
+	bulldozerSprite.SetStaticDimensions(64, 64);
 
 	CreateSpriteObject(moneySprite, "Sprites/moneySign.png");
 	moneySprite.SetPosition(0, 5);
@@ -538,7 +594,16 @@ bool GoblinsMain::Update()
 
 	if (testSwitch.GetActive() && DrawTileOptions() == false)
 	{
-		if (tileTypeIndex != -1) HandlePlaceItems();
+		bool bulldozerClicked = false;
+		DrawImageButton(bulldozerSprite, IntVec2{ static_cast<int>(GetScreenWidth()) - 128, 128}, bulldozerClicked);
+
+		if (bulldozerClicked)
+		{
+			bulldozing = !bulldozing;
+			tileTypeIndex = -1;
+		}
+
+		if (tileTypeIndex != -1 ^ bulldozing) HandlePlaceItems();
 	}
 	else if (testSwitch.GetActive() == false) 
 	{

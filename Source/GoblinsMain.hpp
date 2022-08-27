@@ -25,6 +25,7 @@ public:
 	gobl::Sprite hireNewGoblin; // DEBUG: Using this for a temporary solution for hiring goblins
 
 	gobl::Sprite highlightSprite;
+	gobl::Sprite bulldozerSprite;
 
 	MAP::Map map;
 
@@ -46,6 +47,7 @@ public:
 
 	void HandlePlaceItems();
 	void HandlePickupItems();
+	void DrawImageButton(gobl::Sprite& spr, IntVec2 pos, bool& clicked);
 	void DrawButton(std::string buttonText, IntVec2 pos, bool& clicked);
 	void DrawValidate(std::string prompt, bool& yes, bool& no);
 	void DrawSelectedObject();

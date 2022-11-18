@@ -1,4 +1,5 @@
 <EnvironmentSprite name="Environment.png" w="32" h="32"></EnvironmentSprite>
+<SoundTrack name="Sounds/Music/hopeblooming.wav"></SoundTrack>
 
 <EnvironmentObject name="Grass">
 	<sprite sprIndex="0"></sprite>

@@ -216,6 +216,23 @@ namespace MAP
 					std::cerr << "\tWARNING! Unable to load environment sprite, the sprite has already been loaded elsewhere." << std::endl;
 				}
 			}
+			else if (currName == "SoundTrack")
+			{
+				std::cout << "Sountrack found!" << std::endl;
+				std::string elementName = std::string(currElement->Name());
+
+				auto curAtt = currElement->FirstAttribute();
+				while (curAtt != nullptr)
+				{
+					if (std::string(curAtt->Name()) == "name") 
+					{
+						ge->GetAudio()->LoadMusic(std::string(curAtt->Value()).c_str());
+						std::cout << "\t" << std::string(curAtt->Value()).c_str() << std::endl;
+					}
+
+					curAtt = curAtt->Next();
+				}
+			}
 			else if (currName == "EnvironmentObject")
 			{
 				//std::cout << "Tile object found!" << std::endl;

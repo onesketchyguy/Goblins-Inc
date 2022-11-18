@@ -210,6 +210,7 @@ namespace gobl
 {
     class SDLAudio 
     {
+    private:
         Mix_Music* music = nullptr;
         std::unordered_map<const char*, Mix_Chunk*> clips{};
 

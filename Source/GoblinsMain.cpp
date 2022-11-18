@@ -464,8 +464,7 @@ bool GoblinsMain::Start()
 	viewArea.x += 1;
 	viewArea.y += 2;
 
-	// Load audio
-	GetAudio()->LoadMusic("Sounds/Music/hopeblooming.wav");
+	// Handle the audio
 	GetAudio()->PlayMusic();
 
 	// Scripting	
